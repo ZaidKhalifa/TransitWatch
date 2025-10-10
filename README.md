@@ -1,4 +1,4 @@
-# TripSync: Multi-Modal NYC/NJ Transit Connection Tracker
+# TransitWatch: Multi-Modal NYC/NJ Transit Connection Tracker
 
 **CS 546 Web Programming I - Final Project Proposal**
 
@@ -12,15 +12,15 @@
 
 ## GitHub Repository
 
-[https://github.com/ZaidKhalifa/TripSync](https://github.com/ZaidKhalifa/TripSync)
+[https://github.com/ZaidKhalifa/TransitWatch](https://github.com/ZaidKhalifa/TransitWatch)
 
 ## Brief Description
 
-TripSync is a unified multi-modal transit tracking application designed to solve the fragmentation problem faced by NYC and New Jersey commuters. Currently, commuters must juggle multiple apps and websites (MTA for subway, NJ Transit for light rail, trains and buses, separate PATH information) to plan journeys that span different transit systems. Each system has its own interface, data format, and update schedule, making it difficult to coordinate complex multi-leg commutes.
+TransitWatch is a unified multi-modal transit tracking application designed to solve the fragmentation problem faced by NYC and New Jersey commuters. Currently, commuters must juggle multiple apps and websites (MTA for subway, NJ Transit for light rail, trains and buses, separate PATH information) to plan journeys that span different transit systems. Each system has its own interface, data format, and update schedule, making it difficult to coordinate complex multi-leg commutes.
 
-TripSync aggregates real-time data from MTA, NJ Transit, and PATH into a single, simplified interface focused on the user's saved routes. Users define their typical commute paths (e.g., "NJTransit bus from Central Ave to Journal Square, PATH from Journal Square to Port Authority, then Subway to Queens"), and the application provides a unified dashboard showing live train times and delays across all legs of the journey. The system calculates connection windows and presents alternative options when delays occur, helping commuters make informed real-time decisions.
+TransitWatch aggregates real-time data from MTA, NJ Transit, and PATH into a single, simplified interface focused on the user's saved routes. Users define their typical commute paths (e.g., "NJTransit bus from Central Ave to Journal Square, PATH from Journal Square to Port Authority, then Subway to Queens"), and the application provides a unified dashboard showing live train times and delays across all legs of the journey. The system calculates connection windows and presents alternative options when delays occur, helping commuters make informed real-time decisions.
 
-Additionally, TripSync addresses gaps in official APIs by enabling users to report station-level accessibility issues (broken elevators, closed bathrooms, non-functioning turnstiles) that transit agencies often don't communicate promptly. This crowdsourced information helps mobility-impaired commuters and others plan more reliable journeys.
+Additionally, TransitWatch addresses gaps in official APIs by enabling users to report station-level accessibility issues (broken elevators, closed bathrooms, non-functioning turnstiles) that transit agencies often don't communicate promptly. This crowdsourced information helps mobility-impaired commuters and others plan more reliable journeys.
 
 ## Dataset and API Sources
 
