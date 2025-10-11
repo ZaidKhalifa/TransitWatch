@@ -48,31 +48,27 @@ The fragmented nature of multi-modal transit data across these systems inspired 
 
 ## Core Features
 
-1. **User Authentication System**
-   
-   Secure user registration and login with password hashing. Case-insensitive username handling to prevent duplicate accounts. Session management using cookies to maintain logged-in state across requests.
-
-2. **Multi-Leg Route Creation and Management**
+1. **Multi-Leg Route Creation and Management**
    
    Users can create and save custom multi-modal commute routes with multiple legs. Each leg specifies transit mode (PATH/Subway/Bus), origin station, destination station, and line. Routes can be named (e.g., "Home to Work", "Weekend to Brooklyn") for easy identification. Users can view all saved routes, edit route names, and delete routes they no longer use.
 
-3. **Connection Time Calculator**
+2. **Connection Time Calculator**
    
    Calculates total journey time across multiple transit legs. When a leg is delayed, automatically computes next available complete journey options. Shows 2-3 alternative departure time combinations if the user's preferred connection is missed. Factors in realistic transfer times between stations. Client-side JavaScript performs time arithmetic and displays results dynamically.
 
-4. **Station Accessibility Issue Reporting**
+3. **Station Accessibility Issue Reporting**
    
-   Users can report station-level problems that official APIs don't communicate: broken elevators, non-functioning escalators, closed bathrooms, malfunctioning turnstiles. Report submission input validation (client-side form validation, server-side route validation, database-level validation). Reports include timestamp, affected station, issue type, and optional description. Input sanitization prevents XSS attacks from user-generated descriptions.
+   Users can report station-level problems that official APIs don't communicate: broken elevators, non-functioning escalators, closed bathrooms, malfunctioning turnstiles. Reports include timestamp, affected station, issue type, and optional description.
 
-5. **Report Voting and Verification System**
+4. **Report Voting and Verification System**
    
    Users can upvote or downvote accessibility reports to indicate current accuracy. Vote counts help surface the most relevant and current information. Users can only vote once per report. Reports with negative vote scores are de-emphasized in displays.
 
-6. **Route Detail View**
+5. **Route Detail View**
    
    Comprehensive page for each saved route showing all legs with current status. Displays relevant accessibility reports filtered by stations in the route. Provides quick access to report new issues for any station in the route. Shows historical reliability patterns when available.
 
-7. **Personal Report History**
+6. **Personal Report History**
    
    Users can view all reports they've submitted with timestamps and current vote counts. Option to delete their own reports if issues are resolved. Encourages user accountability and engagement with the reporting system.
 
@@ -90,9 +86,9 @@ The fragmented nature of multi-modal transit data across these systems inspired 
    
    Enhances total journey time calculations by including walking time between stations. Maintains a lookup table of common transfer walking times based on station pairs. Updates estimated arrival time: "Train: 22 min + Walk: 6 min = Total: 28 min". Helps users make more accurate schedule decisions for tight connections.
 
-4. **Route Feasibility Scoring**
+4. **Route Feasibility Indicator**
    
-   Provides a composite score for each saved route based on: number of active accessibility issues, typical delay frequency, transfer distance difficulty. Visual indicators (e.g., Green/Yellow/Red) show route reliability at a glance. Suggests alternative routes when feasibility score drops below threshold.
+   Provides an indicator for each saved route based on: number of active accessibility issues, typical delay frequency, transfer distance difficulty. Visual indicators (e.g., Green/Yellow/Red) show route reliability at a glance.
 
 5. **Historical Delay Pattern Analysis**
    
