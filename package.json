@@ -6,8 +6,7 @@
     "main": "app.js",
     "scripts": {
         "start": "node app.js",
-        "seed": "node api/njt/static/seed.js",
-        "test": "node api/test.js"
+        "seed": "node tasks/njt_bus_seed.js"
     },
     "author": "TransitWatch Team",
     "license": "MIT",
