@@ -1,0 +1,26 @@
+{
+    "name": "transitwatch",
+    "version": "1.0.0",
+    "description": "Multi-modal transit tracking for NYC/NJ commuters",
+    "type": "module",
+    "main": "app.js",
+    "scripts": {
+        "start": "node app.js",
+        "seed": "node api/njt/static/seed.js",
+        "test": "node api/test.js"
+    },
+    "author": "TransitWatch Team",
+    "license": "MIT",
+    "dependencies": {
+        "adm-zip": "^0.5.16",
+        "axios": "^1.13.2",
+        "bcrypt": "^6.0.0",
+        "csv-parser": "^3.2.0",
+        "dotenv": "^17.2.3",
+        "express": "^5.1.0",
+        "express-handlebars": "^8.0.3",
+        "gtfs": "^4.18.1",
+        "gtfs-realtime-bindings": "^1.1.1",
+        "mongodb": "^7.0.0"
+    }
+}

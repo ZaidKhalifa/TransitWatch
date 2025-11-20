@@ -17,6 +17,7 @@
     },
     savedCommutes: //subdocument
     [{
+        _id: ObjectId,
         name: String,
         isActive: Boolean,
         createdAt: Date,
@@ -72,7 +73,7 @@ Unified collection for all transit stops across systems
     _id: ObjectId,
     stopId: String (unique, indexed), // The API's stop ID
     stopName: String (indexed),
-    transitSystem: [String], // "NJT_BUS", "NJT_RAIL", "PATH", "MTA_SUBWAY"
+    transitSystem: [String], // "NJT_BUS", "NJT_RAIL", "PATH", "MTA_SUBWAY", "MTA_BUS"
     
     location: {
         type: "Point",
@@ -178,20 +179,28 @@ For the delay pattern analysis feature
     _id: ObjectId,
     
     transitSystem: String,
-    routeId: String,
-    transportVehicleId: String,
+    routeId: ObjectId,
+    stopId: OnjectId,
 
-    Stops: [
+    timeWindow: 
     {
-        stopId: String,
-        avgArrivalTime: Date,
-        numberOfSamples: Number,
-        
-        dayOfWeek: Number, // 0-6
-        hourOfDay: Number, // 0-23
-    }
-    ],
+        dayOfWeek: Number,     // 0-6
+        hourOfDay: Number,     // 0-23
+    },
+
+    arrivalHistogram: {
+        0: 2,   // 2 arrivals at XX:00
+        1: 0,
+        2: 1,
+        3: 0,
+        ...
+        12: 5,  // 5 arrivals at XX:12 (peak!)
+        ...
+        27: 4,  // 4 arrivals at XX:27 (another peak)
+        ...
+        59: 0
+    },
     
-    recordedAt: Date (indexed)
+    lastUpdated: Date,
 }
 ```
