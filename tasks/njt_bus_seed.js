@@ -72,7 +72,7 @@ async function seed() {
         routeNameMap.set(r.route_id, r.route_long_name || r.route_short_name);
     });
 
-    // 3. Find Representative Trips by Headsign (Longest per variant)
+    // 3. Find Representative Trips by Headsign
     const bestTripsByHeadsign = new Map();
     const tripStopCounts = new Map(); 
 
@@ -131,8 +131,8 @@ async function seed() {
         const stopInfo = stopInfoMap.get(st.stop_id);
         if (!stopInfo) return;
 
-        // GENERATE ID: "NJT_" + Public Code
-        const finalStopId = `NJT_${stopInfo.code}`;
+        // GENERATE ID: "NJTB_" + Public Code
+        const finalStopId = `NJTB_${stopInfo.code}`;
 
         // A. Update ROUTES Collection
         const routeDoc = routeMap[meta.routeId];
@@ -148,7 +148,7 @@ async function seed() {
         }
 
         dirDoc.stops.push({
-            stopId: finalStopId, // Uses NJT_20548
+            stopId: finalStopId, // Uses NJTB_20548
             stopName: stopInfo.name,
             stopOrder: parseInt(st.stop_sequence)
         });
@@ -193,10 +193,10 @@ async function seed() {
         }
 
         return {
-            // SCHEME: NJT_ + Public Code
-            stopId: `NJT_${s.stop_code}`, 
+            // SCHEME: NJTB_ + Public Code
+            stopId: `NJTB_${s.stop_code}`, 
             stopName: s.stop_name,
-            transitSystem: "NJT_BUS",
+            transitSystem: "NJTB_BUS",
             location: { 
                 type: "Point", 
                 coordinates: [parseFloat(s.stop_lon), parseFloat(s.stop_lat)] 
