@@ -1,0 +1,13 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color
+1,NJT,"ACRL","Atlantic City Rail Line",,113,,075AAA,
+2,NJT,"MNBTN","Montclair-Boonton Line",,113,,E66859,
+5,NJT,"BERG","Bergen County Line",,113,,FFD411,
+6,NJT,"MAIN","Main Line",,113,,FFD411,
+7,NJT,"MNE","Morris & Essex Line",,113,,08A652,
+8,NJT,"MNEG","Gladstone Branch",,113,,A4C9AA,
+9,NJT,"NEC","Northeast Corridor",,113,,DD3439,
+10,NJT,"NJCL","North Jersey Coast Line",,113,,03A3DF,
+13,NJT,"PASC","Pascack Valley Line",,113,,94219A,
+14,NJT,"PRIN","Princeton Shuttle",,113,,DD3439,
+15,NJT,"RARV","Raritan Valley Line",,113,,F2A537,
+17,NJT,"MRL","Meadowlands Rail Line",,113,,C1AA72,
