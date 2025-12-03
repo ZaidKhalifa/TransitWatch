@@ -159,7 +159,7 @@ export async function getAllBusLocations(lat, lon, radius) {
 const gtfsClient = axios.create({
     baseURL: 'https://pcsdata.njtransit.com/api/GTFS',
     timeout: 10000,
-    responseType: 'arraybuffer' //ells axios to not try and parse JSON
+    responseType: 'arraybuffer' //tells axios to not try and parse JSON
 });
 
 gtfsClient.interceptors.request.use(async (config) => {
