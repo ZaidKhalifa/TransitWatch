@@ -5,9 +5,9 @@ import * as middleware from '../middleware.js';
 const constructorMethod = (app) => {
     app.use('/', middleware.logging);
   
-    app.use('/login', middleware.login);
-    app.use('/register', middleware.register);
-    app.use('/signout', middleware.signout);
+    app.use('/login', middleware.isGuest);
+    app.use('/register', middleware.isGuest);
+    app.use('/signout', middleware.isAuthenticated);
     
     app.use('/', authRoutes);
 
