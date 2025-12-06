@@ -1,0 +1,76 @@
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div class="dashboard-welcome">
+            <h1 class="dashboard-title">Welcome back, {{user.firstName}}! 🚇</h1>
+            <p class="dashboard-subtitle">
+                Last login: {{user.lastLogin}}
+            </p>
+        </div>
+        <div class="dashboard-actions">
+            <a href="/commutes/new" class="btn btn-primary">
+                <span class="btn-icon">+</span>
+                New Commute
+            </a>
+        </div>
+    </div>
+
+    {{#if user.savedCommutes.length}}
+        <section class="commutes-section">
+            <h2 class="section-heading">Your Saved Commutes</h2>
+            <div class="commutes-grid">
+                {{#each user.savedCommutes}}
+                    <div class="commute-card">
+                        <div class="commute-header">
+                            <h3 class="commute-name">{{this.name}}</h3>
+                            <div class="commute-meta">
+                                <span class="commute-legs">{{this.legs.length}} legs</span>
+                            </div>
+                        </div>
+                        <div class="commute-route">
+                            {{#each this.legs}}
+                                <div class="route-leg">
+                                    <span class="route-mode">{{this.transitMode}}</span>
+                                    <span class="route-arrow">→</span>
+                                    <span class="route-stops">
+                                        {{this.originStopName}} to {{this.destinationStopName}}
+                                    </span>
+                                </div>
+                            {{/each}}
+                        </div>
+                        <div class="commute-actions">
+                            <a href="/dashboard/commute/{{this._id}}" class="btn btn-small btn-primary">View Live</a>
+                            <a href="/commutes/{{this._id}}/edit" class="btn btn-small btn-secondary">Edit</a>
+                        </div>
+                    </div>
+                {{/each}}
+            </div>
+        </section>
+    {{else}}
+        <div class="empty-state">
+            <div class="empty-icon">🗺️</div>
+            <h2 class="empty-title">No Saved Commutes Yet</h2>
+            <p class="empty-description">
+                Create your first commute to start tracking real-time arrivals and connection times.
+            </p>
+            <a href="/commutes/new" class="btn btn-primary btn-large">Create Your First Commute</a>
+        </div>
+    {{/if}}
+
+    <section class="quick-links">
+        <h2 class="section-heading">Quick Actions</h2>
+        <div class="quick-links-grid">
+            <a href="/reports" class="quick-link-card">
+                <span class="quick-link-icon">⚠️</span>
+                <span class="quick-link-text">View Reports</span>
+            </a>
+            <a href="/reports/new" class="quick-link-card">
+                <span class="quick-link-icon">📝</span>
+                <span class="quick-link-text">Report Issue</span>
+            </a>
+            <a href="/settings" class="quick-link-card">
+                <span class="quick-link-icon">⚙️</span>
+                <span class="quick-link-text">Settings</span>
+            </a>
+        </div>
+    </section>
+</div>

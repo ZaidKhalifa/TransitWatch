@@ -6,10 +6,15 @@ import { StatusError } from '../helpers/helpers.js';
 
 router.route('/').get(async (req, res) => {
     const isLoggedIn = req.session && req.session.user;
+
+    // console.log('=== DASHBOARD DEBUG ===');
+    // console.log('req.session exists:', !!req.session);
+    // console.log('req.session.user:', req.session.user);
+    // console.log('======================');
     
     res.render('home', {
         title: 'Home',
-        isLoggedIn
+        isLoggedIn,
     });
 });
 
@@ -17,7 +22,8 @@ router
     .route('/register')
     .get(async (req, res) => {
         res.render('register', {
-        title: 'Register'
+        title: 'Register',
+        user: req.session.user
         });
     })
     .post(async (req, res) => {
@@ -114,7 +120,7 @@ router
     .route('/login')
     .get(async (req, res) => {
         res.render('login', {
-        title: 'Login'
+        title: 'Login',
         });
     })
     .post(async (req, res) => {
@@ -171,7 +177,7 @@ router
             return res.status(e.status || 500).render('login', {
                 title: 'Login',
                 error: e.message || 'Login failed',
-                userId
+                userId,
             });
         }
     });

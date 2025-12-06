@@ -1,0 +1,44 @@
+<nav class="navbar">
+    <div class="nav-container">
+        <a href="/" class="nav-brand">
+            <span class="brand-icon">🚇</span>
+            <span class="brand-text">TransitWatch</span>
+        </a>
+
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <div class="nav-links" id="navLinks">
+            {{#if user}}
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/commutes/new" class="nav-link">New Commute</a>
+                <a href="/reports" class="nav-link">Reports</a>
+                <div class="nav-user">
+                    <span class="nav-username">{{user.firstName}}</span>
+                    <a href="/signout" class="nav-link nav-signout">Sign Out</a>
+                </div>
+            {{else}}
+                <a href="/login" class="nav-link">Login</a>
+                <a href="/register" class="nav-link nav-cta">Get Started</a>
+            {{/if}}
+        </div>
+    </div>
+</nav>
+
+<script>
+    // Mobile menu toggle
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggle = document.getElementById('navToggle');
+        const links = document.getElementById('navLinks');
+        
+        if (toggle) {
+            toggle.addEventListener('click', () => {
+                toggle.classList.toggle('active');
+                links.classList.toggle('active');
+            });
+        }
+    });
+</script>

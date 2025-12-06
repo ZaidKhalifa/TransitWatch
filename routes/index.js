@@ -4,10 +4,16 @@ import * as middleware from '../middleware.js';
 
 const constructorMethod = (app) => {
     app.use('/', middleware.logging);
+
+    app.use((req, res, next) => {
+        res.locals.user = req.session.user;
+        next();
+    });
   
     app.use('/login', middleware.isGuest);
     app.use('/register', middleware.isGuest);
     app.use('/signout', middleware.isAuthenticated);
+    app.use('/dashboard', middleware.isAuthenticated);
     
     app.use('/', authRoutes);
 

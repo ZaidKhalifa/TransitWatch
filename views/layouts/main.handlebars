@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{#if user.preferences.theme}}{{user.preferences.theme}}{{else}}dark{{/if}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} | TransitWatch</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    {{> navbar}}
+    
+    <main class="main-content">
+        {{{body}}}
+    </main>
+
+    {{> footer}}
+
+    <script src="/js/validation.js"></script>
+</body>
+</html>

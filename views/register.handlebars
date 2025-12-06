@@ -1,0 +1,125 @@
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 class="auth-title">Create Your Account</h1>
+            <p class="auth-subtitle">Start tracking your commute in seconds</p>
+        </div>
+
+        {{> errorAlert}}
+
+        <form id="register-form" method="POST" action="/register" class="auth-form" novalidate>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="firstName" class="form-label">First Name</label>
+                    <input 
+                        type="text" 
+                        id="firstName" 
+                        name="firstName" 
+                        class="form-input"
+                        value="{{firstName}}"
+                        placeholder="John"
+                        required
+                        autocomplete="given-name"
+                    >
+                    <span class="error-message hidden" id="firstName-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName" class="form-label">Last Name</label>
+                    <input 
+                        type="text" 
+                        id="lastName" 
+                        name="lastName" 
+                        class="form-input"
+                        value="{{lastName}}"
+                        placeholder="Doe"
+                        required
+                        autocomplete="family-name"
+                    >
+                    <span class="error-message hidden" id="lastName-error"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    class="form-input"
+                    value="{{email}}"
+                    placeholder="john@example.com"
+                    required
+                    autocomplete="email"
+                >
+                <span class="error-message hidden" id="email-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="userId" class="form-label">Username</label>
+                <input 
+                    type="text" 
+                    id="userId" 
+                    name="userId" 
+                    class="form-input"
+                    value="{{userId}}"
+                    placeholder="johndoe123"
+                    required
+                    autocomplete="username"
+                >
+                <span class="form-hint">4-10 characters, letters and numbers only</span>
+                <span class="error-message hidden" id="userId-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="dob" class="form-label">Date of Birth</label>
+                <input 
+                    type="date" 
+                    id="dob" 
+                    name="dob" 
+                    class="form-input"
+                    value="{{dob}}"
+                    required
+                    max="{{currentDate}}"
+                >
+                <span class="form-hint">You must be at least 13 years old</span>
+                <span class="error-message hidden" id="dob-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input"
+                    placeholder="••••••••"
+                    required
+                    autocomplete="new-password"
+                >
+                <span class="form-hint">At least 8 characters</span>
+                <span class="error-message hidden" id="password-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <input 
+                    type="password" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    class="form-input"
+                    placeholder="••••••••"
+                    required
+                    autocomplete="new-password"
+                >
+                <span class="error-message hidden" id="confirmPassword-error"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an account? <a href="/login" class="auth-link">Sign in</a></p>
+        </div>
+    </div>
+</div>

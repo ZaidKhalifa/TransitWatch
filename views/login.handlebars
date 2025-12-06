@@ -1,0 +1,48 @@
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1 class="auth-title">Welcome Back</h1>
+            <p class="auth-subtitle">Sign in to your TransitWatch account</p>
+        </div>
+
+        {{> errorAlert}}
+
+        <form id="login-form" method="POST" action="/login" class="auth-form" novalidate>
+            <div class="form-group">
+                <label for="userId" class="form-label">Username</label>
+                <input 
+                    type="text" 
+                    id="userId" 
+                    name="userId" 
+                    class="form-input"
+                    value="{{userId}}"
+                    placeholder="johndoe123"
+                    required
+                    autocomplete="username"
+                    autofocus
+                >
+                <span class="error-message hidden" id="userId-error"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input"
+                    placeholder="••••••••"
+                    required
+                    autocomplete="current-password"
+                >
+                <span class="error-message hidden" id="password-error"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Don't have an account? <a href="/register" class="auth-link">Create one</a></p>
+        </div>
+    </div>
+</div>
