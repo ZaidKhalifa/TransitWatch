@@ -196,7 +196,7 @@ async function seed() {
             // SCHEME: NJTB_ + Public Code
             stopId: `NJTB_${s.stop_code}`, 
             stopName: s.stop_name,
-            transitSystem: "NJTB_BUS",
+            transitSystem: "NJT_BUS",
             location: { 
                 type: "Point", 
                 coordinates: [parseFloat(s.stop_lon), parseFloat(s.stop_lat)] 
