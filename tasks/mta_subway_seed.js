@@ -7,7 +7,7 @@ import { dbConnection, closeConnection } from '../config/mongoConnection.js';
 import { stopsCollection, routesCollection } from '../config/mongoCollections.js';
 import csv from 'csv-parser';
 
-const GTFS_ZIP_PATH = './downloads/MTA_SUBWAY_gtfs_data.zip';
+const GTFS_ZIP_PATH = './downloads/MTA_SUBWAY_gtfs_data_zip';
 const EXTRACT_PATH = './downloads/MTA_SUBWAY_gtfs';
 
 async function downloadAndUnzip() {
@@ -131,8 +131,8 @@ async function seed() {
         const stopInfo = stopInfoMap.get(st.stop_id);
         if (!stopInfo) return;
 
-        // GENERATE ID: "MTA_" + stop_id
-        const finalStopId = `MTA_${st.stop_id}`;
+        // GENERATE ID: "MTA_SUBWAY_" + stop_id
+        const finalStopId = `MTA_SUBWAY_${st.stop_id}`;
 
         // A. Update ROUTES Collection
         const routeDoc = routeMap[meta.routeId];
@@ -211,8 +211,8 @@ async function seed() {
         }
 
         return {
-            // SCHEME: MTA_ + st_id
-            stopId: `MTA_${s.stop_id}`, 
+            // SCHEME: MTA_SUBWAY_ + st_id
+            stopId: `MTA_SUBWAY_${s.stop_id}`, 
             stopName: s.stop_name,
             transitSystem: "MTA_SUBWAY",
             location: { 
