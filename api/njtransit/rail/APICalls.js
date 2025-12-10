@@ -79,22 +79,28 @@ railClient.interceptors.request.use(async (config) => {
 
 
 
-//list of all stations
+//List all stations in JSON format.
 export async function getStationList() {
   const formData = new FormData(); 
   const res = await railClient.post('/getStationList', formData);
   return res.data; 
 }
 
-
-//for a given station, 19 arrival schedules(message included; upcoming 19 trips)
+// List train schedule for a given station in JSON format, data is much the same as DepartureVision
+// with train stop list information. There is a limit on total schedule records, it starts with current
+// time and gives 19 records for the selected station. This method includes the stops data for each
+// train item.
 export async function getTrainSchedule(stationCode) {
   const formData = new FormData();
   formData.append('station', stationCode); // ex) 'NP'
   const res = await railClient.post('/getTrainSchedule', formData);
   return res.data;
 }
-//for a given station, 27 hours worth of arrival schedules(upcoming trips for the next 27 hours)
+
+// Provides a list of the 27 hours of train schedule data for any one station or all stations if no station is
+// entered
+// Limited access to 5 times per day but only needed once per day after midnight - 12:30AM after
+// would be better - to show the schedule for the 27 hour period from 12 midnight until 3am the next day. 
 export async function getStationSchedule(stationCode = '', njtOnly = true) {
   const formData = new FormData();
   formData.append('station', stationCode); // if it is empty, all stations
@@ -102,8 +108,12 @@ export async function getStationSchedule(stationCode = '', njtOnly = true) {
   const res = await railClient.post('/getStationSchedule', formData);
   return res.data;
 }
-//for a given station, 19 arrival schedules(message included; upcoming 19 trips)
-//without stops information
+
+
+
+// List train schedule for a given station in JSON format, data is much the same as
+// DepartureVision, but without train stop list information. There is a limit on total schedule
+// records, it starts with current time and gives 19 records for the selected station.
 export async function getTrainSchedule19Rec(stationCode, lineCode = '') {
   const formData = new FormData();
   formData.append('station', stationCode);
@@ -111,7 +121,9 @@ export async function getTrainSchedule19Rec(stationCode, lineCode = '') {
   const res = await railClient.post('/getTrainSchedule19Rec', formData);
   return res.data;
 }
-//for a given train, the entire list of stations
+
+
+// List train stops in JSON format by train ID.
 export async function getTrainStopList(trainId) {
   const formData = new FormData();
   formData.append('train', trainId); // ex) '3240'
@@ -167,13 +179,114 @@ export async function getAlerts() {
     const response = await gtfsClient.post('/getAlerts');
     return decodeFeed(response.data);
 }
+// result for getTrainSchedule
+//same as getTrainSchedule19recs except it includes information about stops information that the trip will make.
 
-// const busRoutes = await getBusDirections("119");
-// const busRoutes = await getStops("119", "Bayonne");
-// const busRoutes = await getRouteTrips("20635", "119");
-// const busRoutes = await getStopName("20635");
-// console.log(busRoutes);
+// "STOPS": [
+// {
+// "STATION_2CHAR": "NY",
+// "STATIONNAME": "New York Penn Station",
+// "TIME": "30-May-2024 11:40:00 AM",
+// "PICKUP": "",
+// "DROPOFF": "",
+// "DEPARTED": "NO",
+// "STOP_STATUS": "OnTime",
+// "DEP_TIME": "30-May-2024 11:40:00 AM",
+// "TIME_UTC_FORMAT": "30-May-2024 03:40:00 PM",
+// "STOP_LINES": []
+// },
+// {
+// "STATION_2CHAR": "SE",
+// "STATIONNAME": "Secaucus Upper Lvl",
+// "TIME": "30-May-2024 11:50:56 AM",
+// "PICKUP": "",
+// "DROPOFF": "",
+// "DEPARTED": "YES",
+// "STOP_STATUS": "OnTime",
+// "DEP_TIME": "30-May-2024 11:49:30 AM",
+// "TIME_UTC_FORMAT": "30-May-2024 03:50:56 PM",
+// "STOP_LINES": []
+// },
+// 22
+// {
+// "STATION_2CHAR": "NP",
+// "STATIONNAME": "Newark Penn Station",
+// "TIME": "30-May-2024 11:58:43 AM",
+// "PICKUP": "",
+// "DROPOFF": "",
+// "DEPARTED": "NO",
+// "STOP_STATUS": "OnTime",
+// "DEP_TIME": "30-May-2024 12:00:00 PM",
+// "TIME_UTC_FORMAT": "30-May-2024 03:58:43 PM",
+// "STOP_LINES": []
+// },
 
+
+// result for getTrainSchedule19Rec
+// {
+// "STATION_2CHAR": "NP",
+// "STATIONNAME": "Newark Penn",
+// "STATIONMSGS":[...],
+// "ITEMS": [{
+// "SCHED_DEP_DATE": "30-May-2024 11:52:00 AM",
+// "DESTINATION": "Newport News",
+// "TRACK": "4",
+// "LINE": "REGIONAL",
+// "TRAIN_ID": "A125",
+// "CONNECTING_TRAIN_ID": "",
+// "STATUS": "in 0 Min",
+// "SEC_LATE": "1299",
+// "LAST_MODIFIED": "30-May-2024 12:12:44 PM","BACKCOLOR": "#FFFF00",
+// "FORECOLOR": "black",
+// "SHADOWCOLOR": "yellow",
+// "GPSLATITUDE": "40.735059",
+// "GPSLONGITUDE":
+// "-74.163665","GPSTIME": "30-May-2024 12:12:14 PM",
+// "STATION_POSITION": "1",
+// "LINECODE": "AM",
+// "LINEABBREVIATION": "AMTK",
+// "INLINEMSG": "",
+// "CAPACITY": [],
+// "STOPS": null
+// },...]
+// }
+
+
+//result for getTrainStopList
+// Result #1:
+// {
+// "TRAIN_ID": "3240",
+// "LINECODE": "NC",
+// "BACKCOLOR": "#009CDB",
+// "FORECOLOR": "white",
+// "SHADOWCOLOR": "black",
+// "DESTINATION": "Penn Station New York",
+// "TRANSFERAT": "",
+// "STOPS": [
+// {
+// "STATION_2CHAR": "LB",
+// "STATIONNAME": "Long Branch",
+// "TIME": "30-May-2024 10:52:30 AM",
+// "PICKUP": "",
+// "DROPOFF": "",
+// "DEPARTED": "YES",
+// "STOP_STATUS": "OnTime",
+// "DEP_TIME": "30-May-2024 10:53:30 AM",
+// "TIME_UTC_FORMAT": "30-May-2024 02:52:30 PM",
+// "STOP_LINES": []
+// },
+// {
+// "STATION_2CHAR": "LS",
+// "STATIONNAME": "Little Silver",
+// "TIME": "30-May-2024 11:00:07 AM",
+// "PICKUP": "",
+// "DROPOFF": "",
+// "DEPARTED": "YES",
+// "STOP_STATUS": "OnTime",
+// "DEP_TIME": "30-May-2024 11:01:00 AM",
+// "TIME_UTC_FORMAT": "30-May-2024 03:00:07 PM",
+// "STOP_LINES": []
+// },...]}
 
 // const stations = await getStationList();
 // console.log(stations.slice(0, 5));
