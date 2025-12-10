@@ -103,6 +103,10 @@ export async function getStops(route, direction) {
     return (await client.post('/getStops', formData)).data;
 }
 
+// Provides a set of trips for the given route at the given location. 
+// location : possible locations are either bus_terminal_code as returned by querying
+// getLocations or busstopnumber as returned by querying getStops
+// route : possible routes are found by querying getBusRoutes
 export async function getRouteTrips(location, route) {
     const formData = new FormData();
     formData.append('location', location);
@@ -127,6 +131,11 @@ export async function getBusLocations(lat, lon, radius, route = "", direction = 
     return (await client.post('/getBusLocationsData', formData)).data;
 }
 
+// Provides a list of trips matching the given criteria that will be active 1 hour
+// stop : possible locations are either bus_terminal_code as returned by querying getLocations
+// or busstopnumber as returned by querying getStops
+// direction : possible routes are found by querying getBusDirectionsData
+// route : possible routes are found by querying getBusRoutes
 export async function getBusDV(stop) {
     const formData = new FormData();
     formData.append('stop', stop);
@@ -134,12 +143,16 @@ export async function getBusDV(stop) {
     formData.append('route', '');
     return (await client.post('/getBusDV', formData)).data;
 }
+// Provides the list of stops that the requested trip will make.
+// timing_point_id : possible timing_point_ids are found by querying getBusDV
+// sched_dep_time : possible sched_dep_times are found by querying getBusDV
+// internal_trip_number : possible internal_trip_numbers are found by querying getBusDV
 
 export async function getTripStops(timing_point_id, sched_dep_time, internal_trip_number) {
     const formData = new FormData();
     formData.append('timing_point_id', timing_point_id);
-    formData.append('sched_dep_time', 'sched_dep_time');
-    formData.append('internal_trip_number', 'internal_trip_number');
+    formData.append('sched_dep_time', sched_dep_time);
+    formData.append('internal_trip_number', internal_trip_number);
     return (await client.post('/getBusDV', formData)).data;
 }
 
@@ -230,3 +243,72 @@ export async function getAlerts() {
 // const tripUpdates = await getTripUpdates();
 
 // console.log(tripUpdates.entity[0])
+
+// result for getRouteTrips
+// [
+//  {
+//  "public_route": "113N",
+//  "header": "DUNELLEN NORTH AVE ",
+//  "lanegate": "222-3",
+//  "departuretime": "7:30 AM",
+//  "remarks": "",
+//  "internal_trip_number": "19629805",
+//  "sched_dep_time": "6/22/2023 7:30:00 AM",
+//  "timing_point_id": "NWYKPABT",
+//  "message": null,
+//  "fullscreen": null,
+//  "passload": null,
+//  "vehicle_id": null
+//  },...]
+
+
+
+
+// result for getBUSDV
+// {
+//  "message": {
+//  "message": "NJ TRANSIT Bus Service Customer Service Message“
+//  },
+//  "DVTrip": [
+//  {
+//  "public_route": "164",
+//  "header": "MIDLAND PARK ",
+//  "lanegate": "311",
+//  "departuretime": "in 18 mins",
+//  "remarks": "EMPTY",
+//  "internal_trip_number": "19624134",
+//  "sched_dep_time": "6/22/2023 12:50:00 AM",
+//  "timing_point_id": "NWYKPABT",
+//  "message": null,
+//  "fullscreen": "FALSE",
+//  "passload": "EMPTY",
+//  "vehicle_id": "21032"
+//  },...]
+// }
+
+
+
+// result for getTripStops
+// [
+//  {
+//  "TripNumber": "19624134",
+//  "TimePoint": "NWYKPABT",
+//  "Description": "PORT AUTHORITY BUS TERMINAL",
+//  "SchedLaneGate": "311",
+//  "ManLaneGate": "",
+//  "SchedDepTime": "6/22/2023 12:50:00 AM",
+//  "ApproxTime": "6/22/2023 12:50:00 AM",
+//  "StopID": "26229",
+//  "Status": "Departed"
+//  },
+//  {
+//  "TripNumber": "19624134",
+//  "TimePoint": "",
+//  "Description": "PABT SOUTH WING WHEN ASSIGNED",
+//  "SchedLaneGate": "",
+//  "ManLaneGate": "",
+//  "SchedDepTime": "",
+//  "ApproxTime": "6/22/2023 12:51:38 AM",
+//  "StopID": "31860",
+//  "Status": "Departed"
+//  },...]
