@@ -7,7 +7,7 @@ import { dbConnection, closeConnection } from '../config/mongoConnection.js';
 import { stopsCollection, routesCollection } from '../config/mongoCollections.js';
 import csv from 'csv-parser';
 
-const GTFS_ZIP_PATH = './downloads/njt_bus_gtfs_data.zip';
+const GTFS_ZIP_PATH = './downloads/njt_bus_gtfs_data_zip';
 const EXTRACT_PATH = './downloads/njt_bus_gtfs';
 
 async function downloadAndUnzip() {
