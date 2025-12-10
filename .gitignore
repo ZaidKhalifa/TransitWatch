@@ -142,3 +142,4 @@ vite.config.ts.timestamp-*
 
 downloads/*.zip
 downloads/njt_bus_gtfs
+downloads/njt_rail_gtfs
