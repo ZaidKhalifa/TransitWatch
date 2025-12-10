@@ -207,7 +207,7 @@ async function seed() {
     
     console.log(`Inserting ${finalStops.length} Stops...`);
     const stopsCol = await stopsCollection();
-    await stopsCol.deleteMany({});
+    await stopsCol.deleteMany({transitSystem: "NJT_BUS"});
     await stopsCol.insertMany(finalStops);
 }
 
