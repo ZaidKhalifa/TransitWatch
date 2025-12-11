@@ -88,16 +88,64 @@ export async function getMtaSubwayRealtime(group = 'ace') {
   };
 }
 
+const SUBWAY_GROUPS = ['ace', 'bdfm', 'nqrw', '123', '456', '7', 'l'];
+function extractArrivalsFromTripUpdates(tripUpdates, stopId, nowEpochSec = null) {
+  const results = [];
+  const now = nowEpochSec ?? Math.floor(Date.now() / 1000);
 
-// const busRoutes = await getBusDirections("119");
-// const busRoutes = await getStops("119", "Bayonne");
-// const busRoutes = await getRouteTrips("20635", "119");
-// const busRoutes = await getStopName("20635");
-// console.log(busRoutes);
+  for (const tu of tripUpdates) {
+    const trip = tu.trip;
+    if (!trip) continue;
+
+    const tripId = trip.tripId;
+    const routeId = trip.routeId;
+
+    if (!Array.isArray(tu.stopTimeUpdate)) continue;
+
+    for (const stu of tu.stopTimeUpdate) {
+      if (!stu.stopId) continue;
+      if (stu.stopId !== stopId) continue; // skip if it is not the given station
+
+      const arrivalTime = stu.arrival?.time ?? null;
+      const departureTime = stu.departure?.time ?? null;
+      const when = arrivalTime ?? departureTime;
+
+      if (!when) continue;
+
+      // direction: last letter of stopId ('N' or 'S')
+      const direction = stopId.slice(-1); 
+
+      results.push({
+        tripId,
+        routeId,
+        stopId,
+        direction,              // 'N' or 'S'
+        arrivalTimeEpoch: arrivalTime,     // sec based epoch
+        departureTimeEpoch: departureTime, // sec based epoch (if there is none, null)
+      });
+    }
+  }
+
+  // sort by arrival time
+  results.sort((a, b) => {
+    const ta = a.arrivalTimeEpoch ?? a.departureTimeEpoch ?? Number.MAX_SAFE_INTEGER;
+    const tb = b.arrivalTimeEpoch ?? b.departureTimeEpoch ?? Number.MAX_SAFE_INTEGER;
+    return ta - tb;
+  });
+
+  return results;
+}
 
 
-// const stations = await getStationList();
-// console.log(stations.slice(0, 5));
+
+
+
+
+
+
+
+
+
 
 // const schedule = await getTrainSchedule('NP');
 // console.log(schedule.STATIONNAME, schedule.ITEMS.length);
