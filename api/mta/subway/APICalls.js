@@ -136,6 +136,50 @@ function extractArrivalsFromTripUpdates(tripUpdates, stopId, nowEpochSec = null)
   return results;
 }
 
+/**
+ * Finds all upcoming subway arrivals for the given stopId
+ * by checking every MTA GTFS-RT group (ace, bdfm, nqrw, 123, 456, 7, l)
+ * and combining the results into a single list.
+ *
+ * @param {string} stopId - Example: 'R14N' (parent_station + direction)
+ * @param {object} options
+ *   - groups: Array of feed groups to check (default: all groups)
+ *   - limit: Maximum number of arrivals to return (default: 10)
+ */
+export async function getMtaSubwayArrivalsForStop(stopId, options = {}) {
+  // from options, get groups and limit 
+  const groups = options.groups || SUBWAY_GROUPS;
+  const limit = options.limit ?? 10;
+
+  // 1. get realtime feed for each group
+  const feeds = [];
+
+  for (const g of groups) {
+    try {
+      const feed = await getMtaSubwayRealtime(g);
+      feeds.push(feed);         // push if succeeded
+    } catch (err) {
+      console.error(`Failed to fetch realtime for group=${g}:`, err.message);
+      // if failed, just skip
+    }
+  }
+  let allArrivals = [];
+  for (const feed of feeds) {
+    if (!feed) continue;
+    const { tripUpdates } = feed;
+    const arrivals = extractArrivalsFromTripUpdates(tripUpdates, stopId);
+    allArrivals = allArrivals.concat(arrivals);
+  }
+  allArrivals.sort((a, b) => {
+  const ta = a.arrivalTimeEpoch ?? a.departureTimeEpoch ?? Number.MAX_SAFE_INTEGER;
+  const tb = b.arrivalTimeEpoch ?? b.departureTimeEpoch ?? Number.MAX_SAFE_INTEGER;
+  return ta - tb;
+  });
+  return allArrivals.slice(0, limit);
+
+
+
+  }
 
 
 
@@ -147,7 +191,6 @@ function extractArrivalsFromTripUpdates(tripUpdates, stopId, nowEpochSec = null)
 
 
 
-// const schedule = await getTrainSchedule('NP');
 // console.log(schedule.STATIONNAME, schedule.ITEMS.length);
 // const gtfsdata = await getAlerts();
 // console.log(gtfsdata.entity.map(entity => {
