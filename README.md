@@ -31,6 +31,7 @@ PORT=3000
 MONGODB_URI=mongodb://localhost:27017/TransitWatch_db
 NJT_API_USERNAME=your_username
 NJT_API_PASSWORD=your_password
+MTA_BUS_KEY = YOURKEY
 ```
 
 ### 3. Seed Database
