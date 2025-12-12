@@ -9,7 +9,8 @@
         "seed-njt-bus": "node tasks/njt_bus_seed.js",
         "seed-njt-rail": "node tasks/njt_rail_seed.js",
         "seed-mta-subway": "node tasks/mta_subway_seed.js",
-        "seed-mta-bus": "node tasks/mta_bus_seed.js"
+        "seed-mta-bus": "node tasks/mta_bus_seed.js",
+        "seed-path": "node tasks/path_seed.js"
 
     },
     "author": "TransitWatch Team",
