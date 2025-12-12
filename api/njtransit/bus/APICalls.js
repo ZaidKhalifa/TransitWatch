@@ -148,12 +148,11 @@ export async function getBusDV(stop) {
 // sched_dep_time : possible sched_dep_times are found by querying getBusDV
 // internal_trip_number : possible internal_trip_numbers are found by querying getBusDV
 
-export async function getTripStops(timing_point_id, sched_dep_time, internal_trip_number) {
+export async function getTripStops(internal_trip_number, sched_dep_time = "") {
     const formData = new FormData();
-    formData.append('timing_point_id', timing_point_id);
     formData.append('sched_dep_time', sched_dep_time);
     formData.append('internal_trip_number', internal_trip_number);
-    return (await client.post('/getBusDV', formData)).data;
+    return (await client.post('/getTripStops', formData)).data;
 }
 
 export async function getAllBusLocations(lat, lon, radius) {

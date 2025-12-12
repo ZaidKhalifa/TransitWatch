@@ -11,7 +11,6 @@
         "seed-mta-subway": "node tasks/mta_subway_seed.js",
         "seed-mta-bus": "node tasks/mta_bus_seed.js",
         "seed-path": "node tasks/path_seed.js"
-
     },
     "author": "TransitWatch Team",
     "license": "MIT",
@@ -24,6 +23,7 @@
         "express": "^5.1.0",
         "express-handlebars": "^8.0.3",
         "express-session": "^1.18.2",
+        "geolib": "^3.3.4",
         "gtfs": "^4.18.1",
         "gtfs-realtime-bindings": "^1.1.1",
         "mongodb": "^7.0.0",
