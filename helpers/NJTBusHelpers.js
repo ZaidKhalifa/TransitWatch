@@ -27,7 +27,7 @@ import { StatusError } from './helpers.js';
  *   direction: '125 NEW YORK',
  *   departureTime: '7:30 AM',
  *   tripId: '19629805',
- *   scheduledDepartureTime: '6/22/2023 7:30:00 AM'
+ *   scheduledDepartureTime: '6/22/2023 7:30:00 AM' //Not required if not possible
  * }]
  * 
  * Returns empty array if no trips available (e.g., middle of night)
