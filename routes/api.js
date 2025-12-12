@@ -1,7 +1,7 @@
 import { Router } from 'express';
 const router = Router();
 import * as userData from '../data/users.js';
-import * as transitData from '../data/transitHelpers.js';
+import * as transitData from '../data/transitData.js';
 import * as NJTBusHelpers from '../helpers/NJTBusHelpers.js';
 import { stopsCollection } from '../config/mongoCollections.js';
 
