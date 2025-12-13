@@ -90,7 +90,13 @@ async function seed() {
     routesData.forEach(r => {
         routeNameMap.set(r.route_id, r.route_short_name || r.route_long_name);
     });
-
+    const tripToRouteDir = new Map();
+    tripsData.forEach(t=>{
+        tripToRouteDir.set(t.trip_id, {
+            routeId: t.route_id,
+            headsign: t.trip_headsign||"Unknown"
+        })
+    })
     // 3. Find Representative Trips by Headsign
     const bestTripsByHeadsign = new Map();
     const tripStopCounts = new Map(); 
@@ -183,21 +189,23 @@ async function seed() {
             stopName: stopInfo.name,
             stopOrder: parseInt(st.stop_sequence)
         });
-
+    })
+    stopTimesData.forEach(st => {
+        const t = tripToRouteDir.get(st.trip_id);
         // B. Update STOPS Collection (Aggregation)
         if (!stopToRouteAggregator.has(st.stop_id)) {
             stopToRouteAggregator.set(st.stop_id, new Map());
         }
         
         const routesForThisStop = stopToRouteAggregator.get(st.stop_id);
-        if (!routesForThisStop.has(meta.routeId)) {
-            routesForThisStop.set(meta.routeId, {
-                routeId: meta.routeId,
-                routeName: routeNameMap.get(meta.routeId),
+        if (!routesForThisStop.has(t.routeId)) {
+            routesForThisStop.set(t.routeId, {
+                routeId: t.routeId,
+                routeName: routeNameMap.get(t.routeId),
                 directions: new Set()
             });
         }
-        routesForThisStop.get(meta.routeId).directions.add(meta.headsign);
+        routesForThisStop.get(t.routeId).directions.add(t.headsign);
     });
 
     // 6. Insert ROUTES

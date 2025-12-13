@@ -3,6 +3,20 @@ import axios from 'axios';
 // There is no easy way to connect arrival times for the same train at multiple stops. 
 // So, in the GTFS Realtime feed, the "trips" are dummy trips with a random ID and a single stop time update. This should be sufficient for consumers that want to show arrival times at stops, but of course prevents other uses like tracking trains through the system.
 const PATH_BASE_URL = 'https://path.api.razza.dev/v1';
+const GTFS_BASE_URL = 'https://github.com/transitland/gtfs-archives-not-hosted-elsewhere/raw/master/path-nj-us.zip'
+
+export async function getGTFSData() {
+    try {
+        const response = await axios.get(GTFS_BASE_URL, {
+                timeout: 10000,
+                responseType: 'arraybuffer'
+        })
+        return response.data; 
+    } catch (error) {
+        console.error("Download failed:", error.message);
+        throw error;
+    }
+}
 
 const client = axios.create({
   baseURL: PATH_BASE_URL,
