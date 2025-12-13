@@ -324,4 +324,42 @@
         });
     });
 
+    //Report Form Validation
+    document.addEventListener('DOMContentLoaded', () => {
+        const reportForm = document.getElementById('reportForm');
+        if(!reportForm) return;
+
+        reportForm.addEventListener('submit', (e) => {
+            const stationId = reportForm.stationId.value.trim();
+            const stationName = reportForm.stationName.value.trim();
+            const issueType = reportForm.issueType.value;
+            const description = reportForm.description.value.trim();
+            let valid = true;
+            if(!stationId){
+                alert('Please enter a station ID.');
+                valid = false;
+            }
+            else if(!/^([A-Z_0-9]+)$/.test(stationId)){
+                alert('Station ID must be uppercase letters, underscores, or digits.');
+                valid = false;
+            }
+
+            if(!stationName){
+                alert('Please enter the station name.');
+                valid = false;
+            }
+            if(!issueType){
+                alert('Please select an issue type.');
+                valid = false;
+            }
+
+            if(!description || description.length < 5){
+                alert('Description must be at least 5 characters long.');
+                valid = false;
+            }
+
+            if(!valid) e.preventDefault();
+        });
+    });
+
 })();

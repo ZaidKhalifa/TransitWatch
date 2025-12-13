@@ -1,0 +1,24 @@
+<div class="container">
+    <h1 class="section-heading">Edit Report</h1>
+    <form method="POST" action="/reports/{{report._id}}/edit" class="auth-form">
+        <div class="form-group">
+            <label>Station Name</label>
+            <input type="text" name="stationName" value="{{report.stationName}}" class="form-input" required>
+        </div>
+        <div class="form-group">
+            <label>Issue Type</label>
+            <select name="issueType" class="form-input" required>
+                <option value="elevator">Broken Elevator</option>
+                <option value="escalator">Broken Escalator</option>
+                <option value="bathroom">Closed Bathroom</option>
+                <option value="turnstile">Turnstile Malfunction</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" class="form-input" rows="4">{{report.description}}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Report</button>
+    </form>
+</div>
