@@ -1,7 +1,9 @@
 <div class="container">
     <h1 class="section-heading">Accessibility Reports</h1>
+
     {{> errorAlert}}
     {{> successAlert}}
+
     <section class="create-report">
         <h2 class="subheading">Create a New Report</h2>
         <form method="POST" action="/reports/new" id="reportForm" class="auth-form">
@@ -9,10 +11,12 @@
                 <label for="stationId" class="form-label">Station ID</label>
                 <input type="text" id="stationId" name="stationId" class="form-input" required placeholder="e.g. MTA_SUBWAY_101S">
             </div>
+
             <div class="form-group">
                 <label for="stationName" class="form-label">Station Name</label>
                 <input type="text" id="stationName" name="stationName" class="form-input" required placeholder="e.g. Times Square - 42 St">
             </div>
+
             <div class="form-group">
                 <label for="issueType" class="form-label">Issue Type</label>
                 <select id="issueType" name="issueType" class="form-input" required>
@@ -23,15 +27,19 @@
                     <option value="other">Other</option>
                 </select>
             </div>
+
             <div class="form-group">
                 <label for="description" class="form-label">Description</label>
                 <textarea id="description" name="description" class="form-input" rows="4" required></textarea>
             </div>
+
             <button type="submit" class="btn btn-primary">Submit Report</button>
         </form>
     </section>
+
     <section class="my-reports">
         <h2 class="subheading">My Reports</h2>
+
         {{#if reports.length}}
             <div class="commutes-grid">
                 {{#each reports}}
@@ -39,11 +47,37 @@
                         <div class="commute-header">
                             <h3>{{this.stationName}}</h3>
                             <p class="small">{{this.issueType}}</p>
+                            <a class="small" href="/reports/station/{{this.stationId}}">
+                                View all reports for this station
+                            </a>
                         </div>
+
                         <p>{{this.description}}</p>
                         <p class="small">Last Updated: {{this.updatedAt}}</p>
+
                         <div class="commute-actions">
-                            <a href="/reports/{{this._id}}/edit" class="btn btn-small btn-secondary">Edit</a>
+                            <form method="POST" action="/reports/{{this._id}}/vote" class="inline-form">
+                                <input type="hidden" name="type" value="up">
+                                <button type="submit" class="btn btn-small btn-secondary">
+                                    ⬆ Upvote ({{this.upvotes}})
+                                </button>
+                            </form>
+
+                            <form method="POST" action="/reports/{{this._id}}/vote" class="inline-form">
+                                <input type="hidden" name="type" value="down">
+                                <button type="submit" class="btn btn-small btn-secondary">
+                                    ⬇ Downvote ({{this.downvotes}})
+                                </button>
+                            </form>
+
+                            <span class="small" style="margin-left: 8px;">
+                                Score: {{this.netvotes}}
+                            </span>
+
+                            <a href="/reports/{{this._id}}/edit" class="btn btn-small btn-secondary" style="margin-left: 10px;">
+                                Edit
+                            </a>
+
                             <form method="POST" action="/reports/{{this._id}}/delete" class="inline-form">
                                 <button type="submit" class="btn btn-small btn-danger">Delete</button>
                             </form>

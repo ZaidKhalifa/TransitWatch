@@ -1,0 +1,29 @@
+<h1>Accessibility Reports for Station {{stationId}}</h1>
+
+{{#if reports.length}}
+  <ul>
+    {{#each reports}}
+      <li style="margin-bottom: 1rem;">
+        <strong>{{issueType}}</strong><br/>
+        <em>{{stationName}}</em><br/>
+        {{description}}<br/>
+
+        <form action="/reports/{{_id}}/vote" method="POST" style="display:inline;">
+          <input type="hidden" name="type" value="up"/>
+          <button type="submit">⬆ Upvote ({{upvotes}})</button>
+        </form>
+
+        <form action="/reports/{{_id}}/vote" method="POST" style="display:inline;">
+          <input type="hidden" name="type" value="down"/>
+          <button type="submit">⬇ Downvote ({{downvotes}})</button>
+        </form>
+
+        <div>Score: {{netvotes}}</div>
+      </li>
+    {{/each}}
+  </ul>
+{{else}}
+  <p>No reports found for this station.</p>
+{{/if}}
+
+<a href="/reports">← Back to all reports</a>
