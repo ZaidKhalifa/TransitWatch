@@ -1,0 +1,101 @@
+<div class="page-shell">
+  <div class="page-header">
+    <h1 class="page-title">New Commute</h1>
+    <p class="page-subtitle">
+      Build your multi-leg commute by selecting a system, origin, and destination.
+    </p>
+  </div>
+
+  {{#if savedCommute}}
+    <div class="card success-card">
+      <h2>✅ Commute Saved Successfully</h2>
+
+      <p><strong>Name:</strong> {{savedCommute.name}}</p>
+
+      {{#each savedCommute.legs}}
+        <div class="saved-leg">
+          <h3>Leg {{inc @index}}</h3>
+          <p>
+            <strong>System:</strong> {{transitMode}}<br>
+            <strong>From:</strong> {{originStopName}}<br>
+            <strong>To:</strong> {{destinationStopName}}
+          </p>
+        </div>
+      {{/each}}
+
+      <div class="form-actions">
+        <a href="/dashboard" class="btn btn-primary">Go to Dashboard</a>
+        <a href="/commutes/new" class="btn btn-secondary">Add Another Commute</a>
+      </div>
+    </div>
+
+  {{else}}
+
+  <div class="card form-card">
+    {{#if error}}
+      <div class="form-alert alert-error">⚠️ {{error}}</div>
+    {{/if}}
+
+    <form method="POST" action="/commutes">
+      <div class="form-group">
+        <label>Commute Name</label>
+        <input name="name" required />
+      </div>
+
+      <div class="legs-header">
+        <h2>Commute Legs</h2>
+        <button type="button" id="addLegBtn" class="btn btn-secondary">
+          ➕ Add Leg
+        </button>
+      </div>
+
+      <div id="legsContainer"></div>
+
+      <div class="form-actions">
+        <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Commute</button>
+      </div>
+    </form>
+  </div>
+
+  {{/if}}
+</div>
+
+<template id="legTemplate">
+  <div class="card leg-card">
+    <div class="leg-top">
+      <h3>Leg <span class="leg-number">1</span></h3>
+      <button type="button" class="btn btn-danger leg-remove">Remove</button>
+    </div>
+
+    <div class="grid-3">
+      <div class="form-group">
+        <label>Transit System</label>
+        <select class="transitMode" name="legs[INDEX][transitMode]" required>
+          <option value="">Select system</option>
+          {{#each transitSystems}}
+            <option value="{{this}}">{{this}}</option>
+          {{/each}}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>From</label>
+        <input class="origin-input" disabled />
+        <select class="origin-hidden" name="legs[INDEX][originStopId]" hidden required></select>
+        <div class="dropdown origin-list"></div>
+      </div>
+
+      <div class="form-group">
+        <label>To</label>
+        <input class="dest-input" disabled />
+        <select class="dest-hidden" name="legs[INDEX][destinationStopId]" hidden required></select>
+        <div class="dropdown dest-list"></div>
+      </div>
+    </div>
+
+    <p class="leg-hint">💡 Routes auto-detected on save</p>
+  </div>
+</template>
+
+<script src="/js/addCommute.js"></script>

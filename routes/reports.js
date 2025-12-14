@@ -5,8 +5,8 @@ import {
   getReportById,
   updateReport,
   deleteReport,
-  getReportsByStation,
-  voteReport
+  //getReportsByStation,
+  //voteReport
 } from '../data/reports.js';
 import { isAuthenticated } from '../middleware.js';
 import { stopsCollection } from '../config/mongoCollections.js';
