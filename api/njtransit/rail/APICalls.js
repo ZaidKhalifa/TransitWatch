@@ -108,6 +108,21 @@ export async function getStationSchedule(stationCode = '', njtOnly = true) {
   const res = await railClient.post('/getStationSchedule', formData);
   return res.data;
 }
+//in-memory cache(30s) for station schedule
+const stationScheduleCache = new Map();
+// key: stationCode, value: { ts: number, data: object }
+export async function getTrainScheduleCached(stationCode, ttlMs = 30_000) {
+  const now = Date.now();
+  const cached = stationScheduleCache.get(stationCode);
+
+  if (cached && (now - cached.ts) < ttlMs) {
+    return cached.data;
+  }
+
+  const data = await getTrainSchedule(stationCode); // existing function
+  stationScheduleCache.set(stationCode, { ts: now, data });
+  return data;
+}
 
 
 
@@ -248,8 +263,9 @@ export async function getAlerts() {
 // "INLINEMSG": "",
 // "CAPACITY": [],
 // "STOPS": null
-// },...]
-// }
+// },
+// ...]
+// }]
 
 
 //result for getTrainStopList

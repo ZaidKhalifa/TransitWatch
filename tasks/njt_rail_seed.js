@@ -69,7 +69,7 @@ async function seed() {
     // route_id -> routeName
     const routeNameMap = new Map();
     routesData.forEach(r => {
-        routeNameMap.set(r.route_id, r.route_long_name || r.route_short_name);
+        routeNameMap.set(r.route_id, r.route_short_name || r.route_long_name);
     });
 
     // 3. Find Representative Trips by Headsign
@@ -110,7 +110,7 @@ async function seed() {
         routeMap[r.route_id] = {
             transitSystem: "NJT_RAIL",
             routeId: r.route_id,
-            routeName: r.route_long_name || r.route_short_name,
+            routeName:  r.route_short_name||r.route_long_name,
             directions: [] 
         };
     });
@@ -153,7 +153,7 @@ async function seed() {
         }
 
         dirDoc.stops.push({
-            stopId: finalStopId, // Uses NJTB_20548
+            stopId: finalStopId, // Uses NJTR_HB
             stopName: stopInfo.name,
             stopOrder: parseInt(st.stop_sequence)
         });
@@ -198,7 +198,7 @@ async function seed() {
         }
 
         return {
-            // SCHEME: NJTR_ + Public Code
+            // SCHEME: NJTR_ + HB
             stopId: `NJTR_${s.stop_code}`, 
             stopName: s.stop_name,
             transitSystem: "NJT_RAIL",
