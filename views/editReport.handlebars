@@ -1,13 +1,32 @@
 <div class="container">
     <h1 class="section-heading">Edit Report</h1>
-    <form method="POST" action="/reports/{{report._id}}/edit" class="auth-form">
+    {{> errorAlert}}
+    {{> successAlert}}
+    <form method="POST" action="/reports/{{report._id}}/edit" id="reportForm" class="auth-form">
         <div class="form-group">
-            <label>Station Name</label>
-            <input type="text" name="stationName" value="{{report.stationName}}" class="form-input" required>
+            <label for="stopSearch" class="form-label">Stops (multi-select)</label>
+            <input type="text" id="stopSearch" class="form-input" placeholder="Search stops..." >
+            <select id="stopSelect" class="form-input" size="6" multiple>
+                {{#each stopsOptions}}
+                    <option value="{{this.stopId}}|{{this.stopName}}|{{this.transitSystem}}"> {{this.stopName}} ({{this.transitSystem}}) </option>
+                {{/each}}
+            </select>
+            <button type="button" class="btn btn-secondary" id="addStopBtn">Add Selected Stops</button>
+            <div id="selectedStops" class="selected-stops">
+                {{#if report.stops}}
+                    {{#each report.stops}}
+                        <div class="selected-stop-chip" data-value="{{this.stopId}}|{{this.stopName}}|{{this.transitSystem}}">
+                            <span>{{this.stopName}} ({{this.transitSystem}})</span>
+                            <button type="button" class="remove-stop-btn">×</button>
+                            <input type="hidden" name="stops" value="{{this.stopId}}|{{this.stopName}}|{{this.transitSystem}}">
+                        </div>
+                    {{/each}}
+                {{/if}}
+            </div>
         </div>
         <div class="form-group">
-            <label>Issue Type</label>
-            <select name="issueType" class="form-input" required>
+            <label for="issueType" class="form-label">Issue Type</label>
+            <select id="issueType" name="issueType" class="form-input" required>
                 <option value="elevator">Broken Elevator</option>
                 <option value="escalator">Broken Escalator</option>
                 <option value="bathroom">Closed Bathroom</option>
@@ -16,8 +35,22 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Description</label>
-            <textarea name="description" class="form-input" rows="4">{{report.description}}</textarea>
+            <label for="severity" class="form-label"> Severity <span id="severityValue">({{report.severity}})</span></label>
+            <input type="range" id="severity" name="severity" min="1" max="10" value="{{report.severity}}" class="form-input" >
+            <div class="severity-scale">
+                <span>1 (Low)</span> <span>10 (High)</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="status" class="form-label">Status</label>
+            <select id="status" name="status" class="form-input">
+                <option value="active">Active</option>
+                <option value="resolved">Resolved</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="description" class="form-label">Description</label>
+            <textarea id="description" name="description" class="form-input" rows="4" required >{{report.description}}</textarea>
         </div>
         <button type="submit" class="btn btn-primary">Update Report</button>
     </form>

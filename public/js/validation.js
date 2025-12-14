@@ -362,4 +362,72 @@
         });
     });
 
+    document.addEventListener('DOMContentLoaded', () => {
+        const reportForm = document.getElementById('reportForm');
+        if(!reportForm) return;
+        const stopSearch = document.getElementById('stopSearch');
+        const stopSelect = document.getElementById('stopSelect');
+        const addStopBtn = document.getElementById('addStopBtn');
+        const selectedStopsContainer = document.getElementById('selectedStops');
+        const severityInput = document.getElementById('severity');
+        const severityValue = document.getElementById('severityValue');
+        if(severityInput && severityValue) {
+            const updateSeverityLabel = () => {
+                severityValue.textContent = `(${severityInput.value})`;
+            };
+            updateSeverityLabel();
+            severityInput.addEventListener('input', updateSeverityLabel);
+        }
+        if(stopSearch && stopSelect) {
+            stopSearch.addEventListener('input', () => {
+                const term = stopSearch.value.toLowerCase();
+                Array.from(stopSelect.options).forEach((opt) => {
+                    const text = opt.textContent.toLowerCase();
+                    opt.hidden = term && !text.includes(term);
+                });
+            });
+        }
+        const isStopAlreadySelected = (value) => {
+            const existing = selectedStopsContainer.querySelector( `.selected-stop-chip input[value="${value.replace(/"/g, '\\"')}"]`);
+            return !!existing;
+        };
+        if(addStopBtn && stopSelect && selectedStopsContainer) {
+            addStopBtn.addEventListener('click', () => {
+                const selectedOptions = Array.from(stopSelect.selectedOptions);
+                selectedOptions.forEach((opt) => {
+                    const value = opt.value;
+                    const label = opt.textContent;
+                    if (isStopAlreadySelected(value))
+                        return;
+                    const chip = document.createElement('div');
+                    chip.className = 'selected-stop-chip';
+                    chip.dataset.value = value;
+                    chip.innerHTML = ` <span>${label}</span> <button type="button" class="remove-stop-btn">×</button> <input type="hidden" name="stops" value="${value}"> `;
+                    selectedStopsContainer.appendChild(chip);
+                });
+            });
+            selectedStopsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('.remove-stop-btn');
+                if(!btn)
+                    return;
+                const chip = btn.closest('.selected-stop-chip');
+                if(chip)
+                    chip.remove();
+            });
+        }
+        reportForm.addEventListener('submit', (e) => {
+            const chips = selectedStopsContainer.querySelectorAll('.selected-stop-chip');
+            if(!chips.length){
+                e.preventDefault();
+                alert('Please select at least one stop.');
+                return;
+            }
+            const description = reportForm.description.value.trim();
+            if(description.length < 5){
+                e.preventDefault();
+                alert('Description must be at least 5 characters.');
+            }
+        });
+    });
+
 })();

@@ -1,184 +1,198 @@
-import { reportsCollection, usersCollection, stopsCollection } from "../config/mongoCollections.js";
-import { ObjectId } from "mongodb";
-import { validateReportInput } from "../helpers/reportHelpers.js";
+import { reportsCollection, usersCollection } from '../config/mongoCollections.js';
+import { ObjectId } from 'mongodb';
+import { parseAndValidateStops, validateIssueType, validateDescription, validateSeverity, validateStatus } from '../helpers/reportHelpers.js';
+// username = req.session.user.userId (your login username)
+export const createReport = async (
+    username,
+    stopsRaw,
+    issueTypeRaw,
+    descriptionRaw,
+    severityRaw,
+    statusRaw) => { 
+        const reportsCol = await reportsCollection();
+        const usersCol = await usersCollection();
+        const user = await usersCol.findOne({ userId: username });
+        if(!user)
+            throw new Error('User not found');
+        const stops = parseAndValidateStops(stopsRaw);
+        const issueType = validateIssueType(issueTypeRaw);
+        const description = validateDescription(descriptionRaw);
+        const severity = validateSeverity(severityRaw);
+        const status = validateStatus(statusRaw || 'active');
+        const now = new Date();
+        const isResolved = status === 'resolved';
+        const newReport = {
+            userId: user._id,
+            username: username,
+            stops,
+            issueType,
+            severity,
+            description,
+            upvotes: 0,
+            downvotes: 0,
+            netVotes: 0,
+            voters: [],
+            status,
+            isResolved,
+            createdAt: now,
+            updatedAt: now,
+            resolvedAt: isResolved ? now : null
+        };
+        const insertInfo = await reportsCol.insertOne(newReport);
+        if(!insertInfo.acknowledged)
+            throw new Error('Failed to insert report');
+        const reportId = insertInfo.insertedId;
+        await usersCol.updateOne(
+            { _id: user._id },
+            { $push: { reports: reportId } }
+        );
+        return await reportsCol.findOne({ _id: reportId });
+    };
+    
+    export const getReportsByUser = async (username) => {
+        const reportsCol = await reportsCollection();
+        return await reportsCol .find({ username }) .sort({ updatedAt: -1 }) .toArray();
+    };
+    
+    export const getReportById = async (reportId) => {
+        if(!ObjectId.isValid(reportId))
+            throw new Error('Invalid report id');
+        const reportsCol = await reportsCollection();
+        return await reportsCol.findOne({ _id: new ObjectId(reportId) });
+    };
+    
+    export const updateReport = async (reportId, username, updatesRaw) => {
+        if(!ObjectId.isValid(reportId))
+            throw new Error('Invalid report id');
+        const reportsCol = await reportsCollection();
+        const existing = await reportsCol.findOne({ _id: new ObjectId(reportId), username });
+        if(!existing)
+            throw new Error('Report not found or unauthorized');
+        const updateDoc = {};
+        if(updatesRaw.stops){
+            updateDoc.stops = parseAndValidateStops(updatesRaw.stops);
+        }
+        if(updatesRaw.issueType){
+            updateDoc.issueType = validateIssueType(updatesRaw.issueType);
+        }
+        if(updatesRaw.description){
+            updateDoc.description = validateDescription(updatesRaw.description);
+        }
+        if(updatesRaw.severity){
+            updateDoc.severity = validateSeverity(updatesRaw.severity);
+        }
+        if(updatesRaw.status){
+            const status = validateStatus(updatesRaw.status);
+            updateDoc.status = status;
+            updateDoc.isResolved = status === 'resolved';
+            updateDoc.resolvedAt = status === 'resolved' ? new Date() : null;
+        }
+        updateDoc.updatedAt = new Date();
+        const result = await reportsCol.findOneAndUpdate(
+            { _id: new ObjectId(reportId), username },
+            { $set: updateDoc },
+            { returnDocument: 'after' }
+        );
+        if(!result.value)
+            throw new Error('Report update failed');
+        return result.value;
+    };
+    
+    export const deleteReport = async (reportId, username) => {
+        if(!ObjectId.isValid(reportId))
+            throw new Error('Invalid report id');
+        const reportsCol = await reportsCollection();
+        const usersCol = await usersCollection();
+        const reportObjectId = new ObjectId(reportId);
+        const report = await reportsCol.findOne({ _id: reportObjectId, username });
+        if(!report)
+            throw new Error('Report not found or unauthorized');
+        const deleteResult = await reportsCol.deleteOne({ _id: reportObjectId, username });
+        if(!deleteResult.deletedCount)
+            throw new Error('Report delete failed');
+        await usersCol.updateOne(
+            { _id: report.userId },
+            { $pull: { reports: reportObjectId } }
+        );
+    };
 
-function toObjectId(id, name = "id") {
-  if (!id) throw new Error(`${name} is required`);
-  if (id instanceof ObjectId) return id;
-  if (!ObjectId.isValid(id)) throw new Error(`Invalid ${name}`);
-  return new ObjectId(id);
-}
+// import { reportsCollection, usersCollection } from "../config/mongoCollections.js";
+// import { ObjectId, ReturnDocument } from "mongodb";
+// import { validateReportInput } from '../helpers/reportHelpers.js';
 
-export const createReport = async (userId, stationId, stationName, issueType, description) => {
-  const reportData = validateReportInput({ stationId, stationName, issueType, description });
+// export const createReport = async (userId, stationId, stationName, issueType, description) => {
+//     const reportData = validateReportInput({ stationId, stationName, issueType, description });
+//     const reportsCol = await reportsCollection();
+//     const usersCol = await usersCollection();
+//     const newReport = {
+//         userId,
+//         stationId: reportData.stationId,
+//         stationName: reportData.stationName,
+//         issueType: reportData.issueType,
+//         description: reportData.description,
+//         createdAt: new Date(),
+//         updatedAt: new Date(),
+//         upvotes: 0,
+//         downvotes: 0,
+//         netvotes: 0,
+//     };
 
-  const reportsCol = await reportsCollection();
-  const usersCol = await usersCollection();
-  const uid = toObjectId(userId, "userId");
+//     const insertInfo = await reportsCol.insertOne(newReport);
+//     if(!insertInfo.acknowledged) throw new Error('Failed to insert report');
+//     const reportId = insertInfo.insertedId;
 
-  const newReport = {
-    userId: uid,
-    stationId: reportData.stationId,
-    stationName: reportData.stationName,
-    issueType: reportData.issueType,
-    description: reportData.description,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    upvoters: [],
-    downvoters: [],
-    upvotes: 0,
-    downvotes: 0,
-    netvotes: 0,
-  };
+//     //linking report with user
+//     await usersCol.updateOne(
+//         { userId},
+//         {$push: { reports: reportId}}
+//     );
 
-  const insertInfo = await reportsCol.insertOne(newReport);
-  if (!insertInfo.acknowledged) throw new Error("Failed to insert report");
+//     return await reportsCol.findOne({ _id: reportId});
+// };
 
-  const reportId = insertInfo.insertedId;
+// export const getReportsByUser = async (userId) => {
+//     const reportsCol = await reportsCollection();
+//     return await reportsCol.find({userId}).sort({updatedAt: -1}).toArray();
+// };
 
-  await usersCol.updateOne(
-    { _id: uid },
-    { $addToSet: { reports: reportId } }
-  );
+// export const getReportById = async (reportId) => {
+//     if(!ObjectId.isValid(reportId)) 
+//         throw new Error('Invalid report Id');
+//     const reportsCol = await reportsCollection();
+//     return await reportsCol.findOne({ _id: new ObjectId(reportId) });
+// };
 
-  try {
-    const stopsCol = await stopsCollection();
-    await stopsCol.updateOne(
-      { stop_id: reportData.stationId },
-      { $addToSet: { reports: reportId } }
-    );
-  } catch (e) {}
+// export const updateReport = async (reportId, userId, updates) => {
 
-  return await reportsCol.findOne({ _id: reportId });
-};
+//     if(!ObjectId.isValid(reportId)) throw new Error('Invalid report Id');
+//     const reportsCol = await reportsCollection();
+//     const updateDoc = {
+//         ...updates,
+//         updatedAt: new Date()
+//     };
 
-export const getReportsByUser = async (userId) => {
-  const reportsCol = await reportsCollection();
-  const uid = toObjectId(userId, "userId");
-  return await reportsCol.find({ userId: uid }).sort({ updatedAt: -1 }).toArray();
-};
+//     const result = await reports.findOneAndUpdate(
+//         { _id: new ObjectId(reportId), userId},
+//         { $set: updateDoc },
+//         {returnDocument: 'after'}
+//     );
 
-export const getReportById = async (reportId) => {
-  const rid = toObjectId(reportId, "reportId");
-  const reportsCol = await reportsCollection();
-  return await reportsCol.findOne({ _id: rid });
-};
+//     if(!result.value)
+//         throw new Error('Report not found or unauthorized');
+//     return result.value;
+// };
 
-export const getReportsByStation = async (stationId) => {
-  if (!stationId) throw new Error("stationId is required");
-  const reportsCol = await reportsCollection();
+// export const deleteReport = async (reportId, userId) => {
 
-  const list = await reportsCol
-    .find({ stationId })
-    .sort({ updatedAt: -1 })
-    .toArray();
+//     if(!ObjectId.isValid(reportId)) throw new Error('Invalid report Id');
 
-  const nonNeg = list
-    .filter(r => (r.netvotes ?? 0) >= 0)
-    .sort((a, b) => (b.netvotes - a.netvotes) || (b.updatedAt - a.updatedAt));
-
-  const neg = list
-    .filter(r => (r.netvotes ?? 0) < 0)
-    .sort((a, b) => (b.netvotes - a.netvotes) || (b.updatedAt - a.updatedAt));
-
-  return [...nonNeg, ...neg];
-};
-
-export const updateReport = async (reportId, userId, updates) => {
-  const rid = toObjectId(reportId, "reportId");
-  const uid = toObjectId(userId, "userId");
-  const reportsCol = await reportsCollection();
-
-  const allowed = {};
-  if (updates.stationName) allowed.stationName = updates.stationName;
-  if (updates.issueType) allowed.issueType = updates.issueType;
-  if (updates.description) allowed.description = updates.description;
-
-  const updateDoc = {
-    ...allowed,
-    updatedAt: new Date(),
-  };
-
-  const result = await reportsCol.findOneAndUpdate(
-    { _id: rid, userId: uid },
-    { $set: updateDoc },
-    { returnDocument: "after" }
-  );
-
-  if (!result.value) throw new Error("Report not found or unauthorized");
-  return result.value;
-};
-
-export const deleteReport = async (reportId, userId) => {
-  const rid = toObjectId(reportId, "reportId");
-  const uid = toObjectId(userId, "userId");
-
-  const reportsCol = await reportsCollection();
-  const usersCol = await usersCollection();
-
-  const deletion = await reportsCol.deleteOne({ _id: rid, userId: uid });
-  if (!deletion.deletedCount) throw new Error("Report not found or unauthorized");
-
-  await usersCol.updateOne(
-    { _id: uid },
-    { $pull: { reports: rid } }
-  );
-
-  try {
-    const stopsCol = await stopsCollection();
-    await stopsCol.updateOne(
-      { reports: rid },
-      { $pull: { reports: rid } }
-    );
-  } catch (e) {}
-
-  return { deleted: true };
-};
-
-export const voteReport = async (reportId, voterId, type) => {
-  const rid = toObjectId(reportId, "reportId");
-  const vid = toObjectId(voterId, "voterId");
-
-  const t = (type || "").toLowerCase().trim();
-  if (t !== "up" && t !== "down") throw new Error("type must be 'up' or 'down'");
-
-  const reportsCol = await reportsCollection();
-  const report = await reportsCol.findOne({ _id: rid });
-  if (!report) throw new Error("Report not found");
-
-  const upSet = new Set((report.upvoters || []).map(x => x.toString()));
-  const downSet = new Set((report.downvoters || []).map(x => x.toString()));
-  const me = vid.toString();
-
-  const hasUp = upSet.has(me);
-  const hasDown = downSet.has(me);
-
-  if (t === "up" && hasUp) throw new Error("You already upvoted this report");
-  if (t === "down" && hasDown) throw new Error("You already downvoted this report");
-
-  const update = { $set: { updatedAt: new Date() } };
-
-  if (t === "up") {
-    update.$addToSet = { upvoters: vid };
-    update.$pull = { downvoters: vid };
-    update.$inc = hasDown
-      ? { upvotes: 1, downvotes: -1, netvotes: 2 }
-      : { upvotes: 1, netvotes: 1 };
-  } else {
-    update.$addToSet = { downvoters: vid };
-    update.$pull = { upvoters: vid };
-    update.$inc = hasUp
-      ? { downvotes: 1, upvotes: -1, netvotes: -2 }
-      : { downvotes: 1, netvotes: -1 };
-  }
-
-  await reportsCol.updateOne({ _id: rid }, update);
-
-  const updated = await reportsCol.findOne({ _id: rid });
-  return {
-    reportId: updated._id.toString(),
-    upvotes: updated.upvotes,
-    downvotes: updated.downvotes,
-    netvotes: updated.netvotes,
-  };
-};
+//     const reportsCol = await reportsCollection();
+//     const usersCol = await usersCollection();
+//     const deletion = await reportsCol.deleteOne({ _id: new ObjectId(reportId), userId});
+//     if (!deletion.deletedCount)
+//         throw new Error('Report not found or unauthorized');
+//     await usersCol.updateOne(
+//         { userId },
+//         { $pull: { reports: new ObjectId(reportId) } }
+//     );
+// };
