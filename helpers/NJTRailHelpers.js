@@ -4,6 +4,69 @@ import { StatusError } from './helpers.js';
 
 /**
  * ============================================================================
+ * ROUTE NAME MAPPING: DB route names → API LINEABBREVIATION
+ * ============================================================================
+ * 
+ * The database stores full route names (from GTFS route_long_name),
+ * but the real-time API returns LINEABBREVIATION codes.
+ * This map translates between them.
+ */
+const DB_NAME_TO_API_ABBR = {
+    // Full name (from DB) → API LINEABBREVIATION
+    'main line': 'MAIN',
+    'bergen county line': 'BERG',
+    'pascack valley line': 'PASC',
+    'montclair-boonton line': 'MOBO',
+    'morris & essex line': 'M&E',
+    'morris and essex line': 'M&E',
+    'gladstone branch': 'M&E',
+    'northeast corridor': 'NEC',
+    'northeast corridor line': 'NEC',
+    'north jersey coast line': 'NJCL',
+    'raritan valley line': 'RARV',
+    'atlantic city rail line': 'ACRL',
+    'atlantic city line': 'ACRL',
+    'princeton branch': 'PRIN',
+    'princeton shuttle': 'PRIN',
+    'meadowlands rail line': 'BMGM',
+    // Also support if DB has abbreviations directly
+    'main': 'MAIN',
+    'berg': 'BERG',
+    'pasc': 'PASC',
+    'mobo': 'MOBO',
+    'm&e': 'M&E',
+    'mne': 'M&E',
+    'mneg': 'M&E',
+    'nec': 'NEC',
+    'njcl': 'NJCL',
+    'rarv': 'RARV',
+    'acrl': 'ACRL',
+    'prin': 'PRIN',
+    'bmgm': 'BMGM',
+    'mnbtn': 'MOBO',
+    'mrl': 'BMGM',
+};
+
+/**
+ * Convert DB route name to API LINEABBREVIATION
+ */
+function toApiRouteAbbr(dbRouteName) {
+    if (!dbRouteName) return null;
+    const lower = dbRouteName.toLowerCase().trim();
+    return DB_NAME_TO_API_ABBR[lower] || dbRouteName.toUpperCase();
+}
+
+/**
+ * Check if a DB route name matches an API LINEABBREVIATION
+ */
+function routeMatches(dbRouteName, apiLineAbbr) {
+    if (!dbRouteName || !apiLineAbbr) return false;
+    const expectedApiAbbr = toApiRouteAbbr(dbRouteName);
+    return expectedApiAbbr.toLowerCase() === apiLineAbbr.trim().toLowerCase();
+}
+
+/**
+ * ============================================================================
  * FUNCTIONS FOR DASHBOARD - REAL-TIME TRIP LOOKUPS
  * ============================================================================
  * 
@@ -39,18 +102,32 @@ export const getAvailableTrips = async (leg, minDepartureTime = null) => {
     // Database: "NJTR_HB" -> API expects: "HB"
     const stopCode = leg.originStopId.replace(/^NJTR_/, '');
     
+    // DEBUG: Log what we're looking for
+    console.log(`[NJT_RAIL DEBUG] Looking for trips from origin stopCode: ${stopCode}`);
+    console.log(`[NJT_RAIL DEBUG] Destination stopId: ${leg.destinationStopId}`);
+    
     // Loop through all stored routes for this leg
     for (const route of leg.routes) {
         try {
             // Call API to get trips for this route at origin stop
             // call without line filter, then match by LINEABBREVIATION
             let trips = await apiCalls.getTrainScheduleCached(stopCode,'');
+            
+            // DEBUG: Log API response
+            console.log(`[NJT_RAIL DEBUG] API returned ${trips?.ITEMS?.length || 0} trips for station ${stopCode}`);
+            if (trips?.ITEMS?.length > 0) {
+                console.log(`[NJT_RAIL DEBUG] Sample trip LINEABBREVIATION: ${trips.ITEMS[0].LINEABBREVIATION}`);
+                console.log(`[NJT_RAIL DEBUG] Route routeName (GTFS): ${route.routeName}`);
+                console.log(`[NJT_RAIL DEBUG] Mapped to API abbr: ${toApiRouteAbbr(route.routeName)}`);
+            }
+            
             trips = trips?.ITEMS || [];
 
             for (const trip of trips) {
-                // 1) ROUTE MATCH: DB routeName(NEC) must match API LINEABBREVIATION(NEC)
+                // 1) ROUTE MATCH: Use mapping to handle GTFS vs API name differences
+                // e.g., GTFS "MNE" should match API "M&E"
                 const apiRouteAbbr = (trip.LINEABBREVIATION || '').trim();
-                if (apiRouteAbbr && route.routeName && apiRouteAbbr.toLowerCase() !== route.routeName.trim().toLowerCase()) {
+                if (apiRouteAbbr && route.routeName && !routeMatches(route.routeName, apiRouteAbbr)) {
                     continue;
                 }
 //destination string can be inconsistent
@@ -79,6 +156,14 @@ export const getAvailableTrips = async (leg, minDepartureTime = null) => {
                 
                 const tripStops = trip.STOPS||[];
                 if (!tripStops.length) continue;
+                
+                // DEBUG: Log first trip's stops to see STATION_2CHAR values
+                if (allAvailableTrips.length === 0 && tripStops.length > 0) {
+                    console.log(`[NJT_RAIL DEBUG] Sample trip ${trip.TRAIN_ID} has ${tripStops.length} stops`);
+                    console.log(`[NJT_RAIL DEBUG] First few STATION_2CHAR values:`, 
+                        tripStops.slice(0, 5).map(s => s.STATION_2CHAR));
+                }
+                
                 // API does not return stopId, instead it returns STATION_2CHAR  (e.g., "HB")
                 // Database has stopIds with prefix (e.g., "NJTR_HB")
                 // So we need to strip the prefix for comparison
@@ -89,10 +174,18 @@ export const getAvailableTrips = async (leg, minDepartureTime = null) => {
                 const destinationStopIndex = tripStops.findIndex(stop => stop.STATION_2CHAR === destinationStopCode);
 
                 if (originStopIndex === -1) {
+                    // DEBUG: Log mismatch
+                    if (allAvailableTrips.length === 0) {
+                        console.log(`[NJT_RAIL DEBUG] Origin ${originStopCode} NOT FOUND in trip stops`);
+                    }
                     continue;
 
                 }
                 if (destinationStopIndex===-1) {
+                    // DEBUG: Log mismatch
+                    if (allAvailableTrips.length === 0) {
+                        console.log(`[NJT_RAIL DEBUG] Destination ${destinationStopCode} NOT FOUND in trip stops`);
+                    }
                     continue;
 
                 }
