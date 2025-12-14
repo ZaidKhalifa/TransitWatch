@@ -14,6 +14,10 @@ await fsPromises.mkdir(GTFS_ZIP_BASE_PATH, { recursive: true });
 await fsPromises.mkdir(EXTRACT_BASE_PATH, { recursive: true });
 
 const DATASETS = ['bx', 'b', 'm', 'q', 'si', 'busco'];
+function toSiriLineRef(r) {
+  const agency = (r.agency_id || 'MTA NYCT').trim(); 
+  return `${agency}_${r.route_id}`;                  // "MTA NYCT_B63"
+}
 async function downloadAndUnzipAll() {
     console.log("Downloading all GTFS Zips from MTA BUS...");
     const zipBuffers = await getAllMtaBusStaticZips();
@@ -135,7 +139,7 @@ async function seed() {
     routesData.forEach(r => {
         routeMap[r.route_id] = {
             transitSystem: "MTA_BUS",
-            routeId: r.route_id,
+            routeId: toSiriLineRef(r),
             routeName: r.route_short_name || r.route_long_name,
             directions: [] 
         };
@@ -190,22 +194,28 @@ async function seed() {
             stopOrder: parseInt(st.stop_sequence)
         });
     })
+
+    const siriLineRefMap = new Map();
+    routesData.forEach(r => {
+        siriLineRefMap.set(r.route_id, toSiriLineRef(r));
+    });
     stopTimesData.forEach(st => {
         const t = tripToRouteDir.get(st.trip_id);
         // B. Update STOPS Collection (Aggregation)
+        const siriRouteId = siriLineRefMap.get(t.routeId) || t.routeId;
         if (!stopToRouteAggregator.has(st.stop_id)) {
             stopToRouteAggregator.set(st.stop_id, new Map());
         }
         
         const routesForThisStop = stopToRouteAggregator.get(st.stop_id);
-        if (!routesForThisStop.has(t.routeId)) {
-            routesForThisStop.set(t.routeId, {
-                routeId: t.routeId,
+        if (!routesForThisStop.has(siriRouteId)) {
+            routesForThisStop.set(siriRouteId, {
+                routeId: siriRouteId,
                 routeName: routeNameMap.get(t.routeId),
                 directions: new Set()
             });
         }
-        routesForThisStop.get(t.routeId).directions.add(t.headsign);
+        routesForThisStop.get(siriRouteId).directions.add(t.headsign);
     });
 
     // 6. Insert ROUTES

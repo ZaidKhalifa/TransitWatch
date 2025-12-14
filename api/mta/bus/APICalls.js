@@ -7,8 +7,8 @@ const BUS_BASE_URL = 'https://bustime.mta.info/api';
 // Example: "MTA_307582" → GTFS stop_id "307582".
 // Only difference is the "MTA_" prefix.
 
-// routeId from Bus Time is the same as GTFS route_id.
-// Example: "MTA NYCT_B63" matches GTFS routes.txt exactly.
+// routeId from Bus Time does not match GTFS route_id.
+// Example: "MTA NYCT_B63" vs in db, it is "B63"
 
 // tripId in Bus Time (DatedVehicleJourneyRef) is NOT the same as GTFS trip_id.
 // It is an internal real-time ID only used for live predictions.
@@ -77,7 +77,9 @@ const busClient = axios.create({
 export async function callStopMonitoring(stopId, routeId = null) {
   const params = {
     key: process.env.MTA_BUS_KEY,
-    MonitoringRef: stopId
+    MonitoringRef: stopId,
+    StopMonitoringDetailLevel: 'calls',
+    MaximumNumberOfCallsOnwards: 60
   };
   if (routeId) {
     params.LineRef = routeId;
@@ -106,23 +108,31 @@ export async function getArrivalsForBusStop(stopId, routeId = null) {
     const raw = await callStopMonitoring(stopId, routeId);
     // Navigate down to the arrival list inside the SIRI structure
     const delivery =raw?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0];
-    
+    // console.log(JSON.stringify(
+    //   raw?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit?.[0]?.MonitoredVehicleJourney?.OnwardCalls,
+    //   null,
+    //   2
+    // ));
+
+    return JSON.stringify(raw?.Siri?.ServiceDelivery?.StopMonitoringDelivery?.[0]?.MonitoredStopVisit?.[0]?.MonitoredVehicleJourney?.OnwardCalls,
+      null,
+      2)
     // MonitoredStopVisit[] = Each item is “one incoming bus”
     const visits = delivery?.MonitoredStopVisit || [];
 
-    // Convert SIRI's complex structure into our simple format
-    return visits.map((v) => {
-        const mvj = v.MonitoredVehicleJourney || {};        // bus-level data
-        const call = mvj.MonitoredCall || {};               // arrival info
-        const framed = mvj.FramedVehicleJourneyRef || {};   // contains tripId
+    // // Convert SIRI's complex structure into our simple format
+    // return visits.map((v) => {
+    //     const mvj = v.MonitoredVehicleJourney || {};        // bus-level data
+    //     const call = mvj.MonitoredCall || {};               // arrival info
+    //     const framed = mvj.FramedVehicleJourneyRef || {};   // contains tripId
 
-        return {
-            routeId: mvj.LineRef || null,                          // bus route
-            tripId: framed.DatedVehicleJourneyRef || null,         // unique trip ID
-            arrivalTime:
-                call.ExpectedArrivalTime || call.AimedArrivalTime || null // arrival
-        };
-    });
+    //     return {
+    //         routeId: mvj.LineRef || null,                          // bus route
+    //         tripId: framed.DatedVehicleJourneyRef || null,         // unique trip ID
+    //         arrivalTime:
+    //             call.ExpectedArrivalTime || call.AimedArrivalTime || null // arrival
+    //     };
+    // });
 }
 
 // async function test() {
