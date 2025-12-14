@@ -5,9 +5,10 @@ import * as transitData from '../data/transitData.js';
 import * as NJTBusHelpers from '../helpers/NJTBusHelpers.js';
 import * as NJTRailHelpers from '../helpers/NJTRailHelpers.js'
 import * as MTASubwayHelpers from '../helpers/MTASubwayHelpers.js'
+import * as MTABusHelpers from '../helpers/MTABusHelpers.js'
 import { stopsCollection } from '../config/mongoCollections.js';
 
-const helpers = { "NJT_BUS": NJTBusHelpers, "NJT_RAIL": NJTRailHelpers, "MTA_SUBWAY": MTASubwayHelpers };
+const helpers = { "NJT_BUS": NJTBusHelpers, "NJT_RAIL": NJTRailHelpers, "MTA_SUBWAY": MTASubwayHelpers, "MTA_BUS": MTABusHelpers };
 
 /* ============================================================================
  * ROUTES FOR ADD COMMUTE PAGE - DROPDOWN FILTERING
