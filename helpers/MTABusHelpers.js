@@ -66,7 +66,7 @@ export const getAvailableTrips = async (leg, minDepartureTime = null) => {
     // Extract the actual stop code (remove NJTB_ prefix)
     // Database: "NJTB_20883" -> API expects: "20883"
     const stopCode = leg.originStopId.replace(/^MTA_BUS_/, '');
-    // destinationStopId 예: "MTA_801042"  
+    // destinationStopId "MTA_801042"  
     const destStopId = leg.destinationStopId.replace(/^MTA_BUS_/, 'MTA_');  
     // Loop through all stored routes for this leg
     for (const route of leg.routes) {
@@ -211,24 +211,26 @@ export const getTripDetails = async (leg, minDepartureTime, selectedTripId = nul
     }
     const cached = getTripCache(tripId);
     if (cached && cached.originTime && cached.destTime) {
-    const departureTime = new Date(cached.originTime);
-    const arrivalTime = new Date(cached.destTime);
-    const durationMinutes = Math.round((arrivalTime - departureTime) / (1000 * 60));
+        const departureTime = new Date(cached.originTime);
+        const arrivalTime = new Date(cached.destTime);
+        const durationMinutes = Math.round((arrivalTime - departureTime) / (1000 * 60));
 
-    return {
-        tripId: tripId,
-        routeId: routeId,
-        routeName: routeName,
-        direction: direction,
-        originStopId: leg.originStopId,
-        originStopName: cached.originStopName || leg.originStopName || '',
-        destinationStopId: leg.destinationStopId,
-        destinationStopName: cached.destinationStopName || leg.destinationStopName || '',
-        departureTime: cached.originTime,
-        arrivalTime: cached.destTime,
-        duration: durationMinutes
-    };
+        return {
+            tripId: tripId,
+            routeId: routeId,
+            routeName: routeName,
+            direction: direction,
+            originStopId: leg.originStopId,
+            originStopName: cached.originStopName || leg.originStopName || '',
+            destinationStopId: leg.destinationStopId,
+            destinationStopName: cached.destinationStopName || leg.destinationStopName || '',
+            departureTime: cached.originTime,
+            arrivalTime: cached.destTime,
+            duration: durationMinutes
+        };
     }
+    throw new StatusError(`Trip details not available (cache miss) for tripId=${tripId}`, 404);
+
 
 };
 

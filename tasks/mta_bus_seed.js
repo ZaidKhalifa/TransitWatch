@@ -92,7 +92,7 @@ async function seed() {
     //short_name prioritized
     const routeNameMap = new Map();
     routesData.forEach(r => {
-        routeNameMap.set(r.route_id, r.route_short_name || r.route_long_name);
+        routeNameMap.set(r.route_id, r.route_long_name||r.route_short_name);
     });
     const tripToRouteDir = new Map();
     tripsData.forEach(t=>{
@@ -133,14 +133,14 @@ async function seed() {
     });
 
     // 4. Initialize Route Objects
-    //short_name prioritized
+
     // { directionId, directionName, stops: [ { stopId, stopName, stopOrder } ] }
     const routeMap = {};
     routesData.forEach(r => {
         routeMap[r.route_id] = {
             transitSystem: "MTA_BUS",
             routeId: toSiriLineRef(r),
-            routeName: r.route_short_name || r.route_long_name,
+            routeName: r.route_long_name||r.route_short_name,
             directions: [] 
         };
     });
