@@ -1,16 +1,21 @@
 import * as apiCalls from '../api/mta/subway/APICalls.js';
 import { stopsCollection, routesCollection } from '../config/mongoCollections.js';
 import { StatusError } from './helpers.js';
-// const SUBWAY_GROUPS = ['ace', 'bdfm', 'nqrw', '123', '456', '7', 'l'];
-const SUBWAY_GROUPS = ['gtfs', 'ace', 'bdfm', 'g', 'jz', 'nqrw', 'l','7', 'si'];
+// Valid MTA GTFS-RT feed groups
+const SUBWAY_GROUPS = ['gtfs', 'ace', 'bdfm', 'g', 'jz', 'nqrw', 'l', '7', 'si'];
+
+// Map route IDs to their GTFS-RT feed group
+// IMPORTANT: 1/2/3/4/5/6 use the base 'gtfs' feed, NOT '123' or '456'
 const ROUTE_TO_GROUP = {
+  // Number lines use base gtfs feed
+  '1': 'gtfs', '2': 'gtfs', '3': 'gtfs',
+  '4': 'gtfs', '5': 'gtfs', '6': 'gtfs',
+  // Letter lines use their specific feeds
   A: 'ace', C: 'ace', E: 'ace',
   B: 'bdfm', D: 'bdfm', F: 'bdfm', M: 'bdfm',
   G: 'g',
   J: 'jz', Z: 'jz',
   N: 'nqrw', Q: 'nqrw', R: 'nqrw', W: 'nqrw',
-  '1': '123', '2': '123', '3': '123',
-  '4': '456', '5': '456', '6': '456',
   '7': '7',
   L: 'l',
   SI: 'si'
@@ -266,4 +271,3 @@ export const getTripDetails = async (leg, minDepartureTime, selectedTripId = nul
         duration: durationMinutes
     };
 };
-
