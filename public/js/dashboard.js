@@ -801,8 +801,10 @@
                     if (inTransitLegDetail && inTransitLegDetail.arrivalTime) {
                         const arrivalDate = new Date(inTransitLegDetail.arrivalTime);
                         // Add walk time
+                        const nextLeg = commute.legs[i + 1];
                         const walkTime = commuteState.legStates[i + 1]?.customWalkTime ?? 
-                                        commute.legs[i + 1]?.walkingTimeAfterMinutes ?? 5;
+                                        nextLeg?.preferences?.walkingTimeAfterMinutes ??
+                                        commute.legs[i + 1]?.preferences?.walkingTimeAfterMinutes ?? 5;
                         arrivalDate.setMinutes(arrivalDate.getMinutes() + walkTime);
                         startTime = arrivalDate.toISOString();
                     }

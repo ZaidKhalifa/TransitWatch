@@ -182,7 +182,7 @@ router.post('/commute/:commuteId/calculate', async (req, res) => {
                     if (customWalkTimes && customWalkTimes[walkTimeIndex] != null) {
                         walkTime = customWalkTimes[walkTimeIndex];
                     } else {
-                        walkTime = legsToCalculate[i+1].walkingTimeAfterMinutes || 5;
+                        walkTime = legsToCalculate[i+1].preferences?.walkingTimeAfterMinutes ?? legsToCalculate[i+1].walkingTimeAfterMinutes ?? 5;
                     }
                     walkTimesUsed.push({ legIndex: walkTimeIndex, minutes: walkTime, source: customWalkTimes[walkTimeIndex] != null ? 'custom' : 'stored' });
                 }
@@ -227,7 +227,7 @@ router.post('/commute/:commuteId/calculate', async (req, res) => {
                     }
                     else
                     {
-                        walkTime = legsToCalculate[i+1].walkingTimeAfterMinutes || 5;
+                        walkTime = legsToCalculate[i+1].preferences?.walkingTimeAfterMinutes ?? legsToCalculate[i+1].walkingTimeAfterMinutes ?? 5;
                         walkSource = 'stored';
                     }
                     
