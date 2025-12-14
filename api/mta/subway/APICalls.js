@@ -38,7 +38,7 @@ const decodeFeed = (buffer) => {
         new Uint8Array(buffer)
     );
 };
-const SUBWAY_GROUPS = ['ace', 'bdfm','g', 'jz', 'nqrw', 'l','7', 'si'];
+const SUBWAY_GROUPS = ['gtfs', 'ace', 'bdfm', 'g', 'jz', 'nqrw', 'l', '7', 'si'];
 
 export async function getMtaSubwayFeed(group = 'ace') {
   const path = 

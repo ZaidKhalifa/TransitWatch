@@ -9,24 +9,59 @@ const SUBWAY_GROUPS = ['gtfs', 'ace', 'bdfm', 'g', 'jz', 'nqrw', 'l', '7', 'si']
 const ROUTE_TO_GROUP = {
   // Number lines use base gtfs feed
   '1': 'gtfs', '2': 'gtfs', '3': 'gtfs',
-  '4': 'gtfs', '5': 'gtfs', '6': 'gtfs',
+  '4': 'gtfs', '5': 'gtfs', '6': 'gtfs', '6X': 'gtfs',
   // Letter lines use their specific feeds
   A: 'ace', C: 'ace', E: 'ace',
-  B: 'bdfm', D: 'bdfm', F: 'bdfm', M: 'bdfm',
+  B: 'bdfm', D: 'bdfm', F: 'bdfm', M: 'bdfm', 'FX': 'bdfm',
   G: 'g',
   J: 'jz', Z: 'jz',
   N: 'nqrw', Q: 'nqrw', R: 'nqrw', W: 'nqrw',
-  '7': '7',
+  '7': '7', '7X': '7',
   L: 'l',
-  SI: 'si'
+  SI: 'si', SIR: 'si'
 };
+
+/**
+ * Safely convert a protobuf Long or number to JavaScript number (epoch seconds)
+ * Returns null if conversion fails or value is invalid
+ */
+function safeToEpochSeconds(value) {
+  if (value == null) return null;
+  
+  let num;
+  
+  // Handle protobuf Long objects
+  if (typeof value === 'object') {
+    // Long objects have low/high properties
+    if (value.low !== undefined && value.high !== undefined) {
+      // Manual Long to number conversion for safety
+      // For timestamps, high should be 0 or small (we're < 2^32 until year 2106)
+      num = (value.high >>> 0) * 4294967296 + (value.low >>> 0);
+    } else if (typeof value.toNumber === 'function') {
+      num = value.toNumber();
+    } else if (typeof value.toString === 'function') {
+      num = parseInt(value.toString(), 10);
+    } else {
+      num = Number(value);
+    }
+  } else {
+    num = Number(value);
+  }
+  
+  // Validate: timestamps should be reasonable (year 2000 to 2100)
+  // 946684800 = Jan 1, 2000
+  // 4102444800 = Jan 1, 2100
+  if (isNaN(num) || num < 946684800 || num > 4102444800) {
+    return null;
+  }
+  
+  return num;
+}
+
 /**
  * ============================================================================
  * FUNCTIONS FOR DASHBOARD - REAL-TIME TRIP LOOKUPS
  * ============================================================================
- * 
- * NOTE: No validation needed here! The leg was already validated when the 
- * commute was created, so we just fetch real-time trip data.
  */
 
 // MTA_SUBWAY_TRIP_CACHE: tripKey -> { group, tripUpdate, cachedAt }
@@ -59,147 +94,106 @@ function getCachedTripUpdate(tripKey) {
 
 /**
  * Gets available trips for a pre-validated leg.
- * Uses the stored routes array to filter trips from API calls.
- * 
- * @param {Object} leg - Leg object from savedCommutes containing:
- *   - originStopId: string
- *   - routes: Array of {routeId, routeName, directions: [{directionName, ...}]}
- * @param {Date|string|null} minDepartureTime - Minimum departure time as Date object or ISO string
- * 
- * @returns {Promise<Array>} Array of trip options:
- * [{
- *   routeId: '125',
- *   routeName: 'Jersey City - Journal Square - New York',
- *   direction: '125 NEW YORK',
- *   departureTime: '7:30 AM',
- *   tripId: '19629805',
- *   scheduledDepartureTime: '6/22/2023 7:30:00 AM' //Not required if not possible
- * }]
- * 
- * Returns empty array if no trips available (e.g., middle of night)
  */
-// it returns departureTime: when as sec
 export const getAvailableTrips = async (leg, minDepartureTime = null) => {
     const allAvailableTrips = [];
     // Extract the actual stop code (remove MTA_SUBWAY_ prefix)
-    // Database: "MTA_SUBWAY_D25N" -> API expects: "D25N"
-    const originStopId = leg.originStopId.replace(/^MTA_SUBWAY_/, '');  //'R14N'
+    const originStopId = leg.originStopId.replace(/^MTA_SUBWAY_/, '');
     const destinationStopId = leg.destinationStopId.replace(/^MTA_SUBWAY_/, '');
 
-    // const groups = SUBWAY_GROUPS; 
+    // Build list of feed groups to check based on leg's routes
     const groups = []; 
-
     for (const r of leg.routes) {
-    const routeId = r.routeId;              //  'W'
-    const group = ROUTE_TO_GROUP[routeId];  // 'nqrw'
-
-    if (group) {
-        if (!groups.includes(group)) {
-        groups.push(group);
+        const routeId = r.routeId;
+        const group = ROUTE_TO_GROUP[routeId];
+        if (group && !groups.includes(group)) {
+            groups.push(group);
         }
     }
+    
+    // If no groups found from routes, check all feeds as fallback
+    if (groups.length === 0) {
+        console.warn('MTA Subway: No feed groups found for routes, checking all feeds');
+        groups.push(...SUBWAY_GROUPS);
     }
-        
+
+    const nowEpochSec = Math.floor(Date.now() / 1000);
+    const minEpochSec = minDepartureTime 
+        ? (minDepartureTime instanceof Date 
+            ? Math.floor(minDepartureTime.getTime() / 1000)
+            : Math.floor(new Date(minDepartureTime).getTime() / 1000))
+        : nowEpochSec;
+
     for (const group of groups) {
         let feed;
         try {
             feed = await apiCalls.getMtaSubwayRealtime(group);
         } catch (e) {
+            console.error(`MTA Subway: Failed to fetch feed for group=${group}:`, e.message);
             continue;
         }
+        
         const tripUpdates = feed?.tripUpdates || [];
+        
         for (const tu of tripUpdates) {
             const trip = tu.trip;
             if (!trip) continue;
-            //check if both origin and destination exist in tripUpdate 
-            //also check their order
+            
             const stus = tu.stopTimeUpdate || [];
-            if (!Array.isArray(stus) || stus.length === 0) continue;            
+            if (!Array.isArray(stus) || stus.length === 0) continue;
+            
+            // Check if both origin and destination exist and in correct order
             const oIdx = stus.findIndex(x => x.stopId === originStopId);
             const dIdx = stus.findIndex(x => x.stopId === destinationStopId);
             if (oIdx === -1 || dIdx === -1) continue;
             if (dIdx <= oIdx) continue;
 
-            //time filter
-            const stu = stus[oIdx];
-            const arrivalTime = stu.arrival?.time ?? null;
-            const departureTime = stu.departure?.time ?? null;
-            const when = arrivalTime ?? departureTime;
-            if (!when) continue;
-            const whenSec = when?.toNumber ? when.toNumber() : Number(when);
-            if (minDepartureTime) {
-                const minEpoch = (minDepartureTime instanceof Date)
-                ? Math.floor(minDepartureTime.getTime() / 1000)
-                : Math.floor(new Date(minDepartureTime).getTime() / 1000);
-                if (whenSec < minEpoch) continue;
+            // Get departure time from origin stop
+            const originStu = stus[oIdx];
+            
+            // Try arrival time first, then departure time
+            let whenSec = safeToEpochSeconds(originStu.arrival?.time);
+            if (whenSec === null) {
+                whenSec = safeToEpochSeconds(originStu.departure?.time);
             }
+            
+            // Skip if no valid time found
+            if (whenSec === null) {
+                continue;
+            }
+            
+            // Skip if in the past (compare in seconds)
+            if (whenSec < minEpochSec) continue;
 
-            //caching+create tripKey
+            // Cache the trip update
             const tripKey = cacheTripUpdate(group, tu);
 
             allAvailableTrips.push({
-                routeId: trip.routeId,                 // 'A', '6'
-                routeName: trip.routeId,               
-                direction: originStopId.slice(-1),     // 'N'/'S'
-                departureTime: whenSec,                   
-                tripId: tripKey,                       // tripKey, not tripId
-                scheduledDepartureTime: whenSec           
+                routeId: trip.routeId,
+                routeName: trip.routeId,
+                direction: originStopId.slice(-1), // 'N' or 'S'
+                departureTime: whenSec * 1000,  // Convert to milliseconds for JS Date
+                tripId: tripKey,
+                scheduledDepartureTime: whenSec * 1000  // Convert to milliseconds
             });
-            }            
+        }
     }
     
     // Sort by departure time (earliest first)
-    allAvailableTrips.sort((a, b) => {
-        const timeA = a.scheduledDepartureTime?.toNumber
-            ? a.scheduledDepartureTime.toNumber()
-            : Number(a.scheduledDepartureTime);
-
-        const timeB = b.scheduledDepartureTime?.toNumber
-            ? b.scheduledDepartureTime.toNumber()
-            : Number(b.scheduledDepartureTime);
-
-        return timeA - timeB;
-    });
+    allAvailableTrips.sort((a, b) => a.scheduledDepartureTime - b.scheduledDepartureTime);
     
     return allAvailableTrips;
 };
 
 /**
- * Gets detailed timing information for a specific trip OR auto-selects earliest available trip.
- * 
- * USE CASES:
- * - First leg: User selects trip from dropdown -> pass tripId
- * - Subsequent legs: Auto-select earliest after walk time -> pass only minDepartureTime
- * 
- * @param {Object} leg - Leg object from savedCommutes
- * @param {Date} minDepartureTime - Minimum departure time (current time for first leg, 
- *                                  arrival + walk time for subsequent legs)
- * @param {string|null} selectedTripId - Trip ID if user selected (first leg only)
- *                                      - in this case, tripKey acts as a tripId
- * 
- * @returns {Promise<Object>} Timing details:
- * {
- *   tripId: '19629805',
- *   routeId: '125',
- *   originStopId: 'NJTB_20883',
- *   originStopName: 'JOURNAL SQUARE TRANSPORTATION CENTER',
- *   destinationStopId: 'NJTB_26229',
- *   destinationStopName: 'PORT AUTHORITY BUS TERMINAL',
- *   departureTime: '6/22/2023 7:30:00 AM',
- *   arrivalTime: '6/22/2023 8:15:00 AM',
- *   duration: 45
- * }
- * 
- * @throws {StatusError} 404 if trip not found or no trips available
+ * Gets detailed timing information for a specific trip.
  */
 export const getTripDetails = async (leg, minDepartureTime, selectedTripId = null) => {
-    let tripId, schedDepTime, routeId, routeName, direction;
     let tripKey;
+    let routeId, routeName, direction;
+    
     if (selectedTripId) {
-        // User selected a specific trip (first leg)
         tripKey = selectedTripId;
-        // // We might not have schedDepTime, getTripStops can handle that
-        // schedDepTime = null;
     } else {
         // Auto-select earliest available trip
         const availableTrips = await getAvailableTrips(leg, minDepartureTime);
@@ -211,21 +205,21 @@ export const getTripDetails = async (leg, minDepartureTime, selectedTripId = nul
             );
         }
       
-        // Use earliest trip
         const earliestTrip = availableTrips[0];
         tripKey = earliestTrip.tripId;
-        schedDepTime = earliestTrip.scheduledDepartureTime;
         routeId = earliestTrip.routeId;
         routeName = earliestTrip.routeName;
         direction = earliestTrip.direction;
     }
-    // 1) fetch tripUpdate from cache 
+    
+    // Fetch from cache
     let cached = getCachedTripUpdate(tripKey);
-
-    if (!cached) throw new StatusError(`Trip cache miss for key=${tripKey}`, 404);
+    if (!cached) {
+        throw new StatusError(`Trip cache miss for key=${tripKey}`, 404);
+    }
 
     const tu = cached.tripUpdate;
-    const stus = tu.stopTimeUpdate || [];    
+    const stus = tu.stopTimeUpdate || [];
     const originStopId = leg.originStopId;
     const destinationStopId = leg.destinationStopId;
 
@@ -239,35 +233,36 @@ export const getTripDetails = async (leg, minDepartureTime, selectedTripId = nul
     const originStu = stus[oIdx];
     const destStu = stus[dIdx];
 
-    const departureTime = originStu.departure?.time ?? null;
-    const arrivalTime = destStu.arrival?.time ?? null;
-    const depSec = departureTime?.toNumber ? departureTime.toNumber() : Number(departureTime);
-    const arrSec = arrivalTime?.toNumber ? arrivalTime.toNumber() : Number(arrivalTime);
+    // Get departure from origin and arrival at destination
+    let depSec = safeToEpochSeconds(originStu.departure?.time);
+    if (depSec === null) {
+        depSec = safeToEpochSeconds(originStu.arrival?.time);
+    }
+    
+    let arrSec = safeToEpochSeconds(destStu.arrival?.time);
+    if (arrSec === null) {
+        arrSec = safeToEpochSeconds(destStu.departure?.time);
+    }
 
     // Calculate duration
-    const durationMinutes = Math.round((arrSec - depSec) / (60));
+    const durationMinutes = (depSec && arrSec) ? Math.round((arrSec - depSec) / 60) : null;
 
-    //fetch stop names from stops collection
-    const stopsCol = await stopsCollection();   
-    const originStop = await stopsCol.findOne({
-        stopId:originStopId
-    });   
-    const destinationStop = await stopsCol.findOne({
-        stopId:destinationStopId
-    });
-
+    // Fetch stop names from stops collection
+    const stopsCol = await stopsCollection();
+    const originStop = await stopsCol.findOne({ stopId: originStopId });
+    const destinationStop = await stopsCol.findOne({ stopId: destinationStopId });
 
     return {
         tripId: tripKey,
-        routeId: routeId, // Will be undefined if selectedTripId was provided - caller will set it
-        routeName: routeName, // Will be undefined if selectedTripId was provided - caller will set it
-        direction: direction, // Will be undefined if selectedTripId was provided - caller will set it
-        originStopId: leg.originStopId, // Use database format with prefix
+        routeId: routeId || tu.trip?.routeId,
+        routeName: routeName || tu.trip?.routeId,
+        direction: direction || originStopId.replace(/^MTA_SUBWAY_/, '').slice(-1),
+        originStopId: leg.originStopId,
         originStopName: originStop?.stopName,
-        destinationStopId: leg.destinationStopId, // Use database format with prefix
+        destinationStopId: leg.destinationStopId,
         destinationStopName: destinationStop?.stopName,
-        departureTime: depSec,
-        arrivalTime: arrSec,
+        departureTime: depSec ? depSec * 1000 : null,  // Convert to milliseconds
+        arrivalTime: arrSec ? arrSec * 1000 : null,    // Convert to milliseconds
         duration: durationMinutes
     };
 };
