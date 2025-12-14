@@ -17,7 +17,7 @@ import { StatusError } from './helpers.js';
  * 
  * @param {Object} leg - Leg object from savedCommutes containing:
  *   - originStopId: string
- *   - routes: Array of {routeId, routeName, validDirections: [{directionName, ...}]}
+ *   - routes: Array of {routeId, routeName, valid: [{directionName, ...}]}
  * @param {Date|string|null} minDepartureTime - Minimum departure time as Date object or ISO string
  * 
  * @returns {Promise<Array>} Array of trip options:
@@ -52,7 +52,7 @@ export const getAvailableTrips = async (leg, minDepartureTime = null) => {
                 const tripHeader = trip.header.trim().toLowerCase();
                 
                 // Find matching direction from our stored valid directions
-                const matchingDirection = route.validDirections.find(validDir => {
+                const matchingDirection = route.directions.find(validDir => {
                     const directionWithoutRoute = validDir.directionName.replace(/^\d+\w?\s+/, '').trim();
                     return tripHeader === directionWithoutRoute.toLowerCase();
                 });
@@ -101,7 +101,7 @@ export const getAvailableTrips = async (leg, minDepartureTime = null) => {
  * @param {Object} leg - Leg object from savedCommutes
  * @param {Date} minDepartureTime - Minimum departure time (current time for first leg, 
  *                                  arrival + walk time for subsequent legs)
- * @param {string|null} selectedTripId - Trip ID if user selected (first leg only)
+ * @param {string|null} selectedTripId - Trip ID if user selected
  * 
  * @returns {Promise<Object>} Timing details:
  * {

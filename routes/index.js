@@ -4,6 +4,7 @@ import * as middleware from '../middleware.js';
 import apiRoutes from './api.js';
 import addCommuteRoutes from './add_commute.js';
 import reportsRoutes from './reports.js';
+import dashboardRoutes from './dashboard.js';
 
 const constructorMethod = (app) => {
     app.use('/', middleware.logging);
@@ -25,6 +26,7 @@ const constructorMethod = (app) => {
     app.use('/api', apiRoutes);
     app.use('/addCommute', addCommuteRoutes);
     app.use('/reports', reportsRoutes);
+    app.use('/dashboard', dashboardRoutes);
 
     app.use(/(.*)/, (req, res) => {
     return res.status(404).render('error', {

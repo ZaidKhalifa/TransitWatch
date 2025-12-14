@@ -21,13 +21,14 @@ export const getCommuteById = async (userId, commuteId) => {
     const users = await usersCollection();
     const user = await users.findOne(
         { 
-            _id: new ObjectId(userId),
+            userId: userId,
             'savedCommutes._id': commuteObjectId
         },
         {
             projection: {
                 'savedCommutes.$': 1 // Only return the matching commute
-            }
+            },
+            collation: { locale: 'en', strength: 2 }
         }
     );
     
@@ -47,8 +48,11 @@ export const getCommuteById = async (userId, commuteId) => {
 export const getUserCommutes = async (userId) => {
     const users = await usersCollection();
     const user = await users.findOne(
-        { _id: new ObjectId(userId) },
-        { projection: { savedCommutes: 1 } }
+        { userId: userId },
+        { 
+            projection: { savedCommutes: 1 },
+            collation: { locale: 'en', strength: 2 } 
+        }
     );
     
     if (!user) {
@@ -83,8 +87,9 @@ export const addCommute = async (userId, commuteData) => {
     
     const users = await usersCollection();
     const result = await users.updateOne(
-        { _id: new ObjectId(userId) },
-        { $push: { savedCommutes: newCommute } }
+        { userId: userId },
+        { $push: { savedCommutes: newCommute } },
+        { collation: { locale: 'en', strength: 2 } }
     );
     
     if (result.modifiedCount === 0) {
@@ -106,7 +111,7 @@ export const updateCommuteLastUsed = async (userId, commuteId) => {
     const users = await usersCollection();
     await users.updateOne(
         { 
-            _id: new ObjectId(userId),
+            userId: userId,
             'savedCommutes._id': commuteObjectId
         },
         {
@@ -126,8 +131,9 @@ export const deleteCommute = async (userId, commuteId) => {
     
     const users = await usersCollection();
     const result = await users.updateOne(
-        { _id: new ObjectId(userId) },
-        { $pull: { savedCommutes: { _id: commuteObjectId } } }
+        { userId: userId },
+        { $pull: { savedCommutes: { _id: commuteObjectId } } },
+        { collation: { locale: 'en', strength: 2 } }
     );
     
     if (result.modifiedCount === 0) {

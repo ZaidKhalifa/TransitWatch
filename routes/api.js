@@ -1,6 +1,6 @@
 import { Router } from 'express';
 const router = Router();
-import * as userData from '../data/users.js';
+import * as userData from '../data/userCommutes.js';
 import * as transitData from '../data/transitData.js';
 import * as NJTBusHelpers from '../helpers/NJTBusHelpers.js';
 import { stopsCollection } from '../config/mongoCollections.js';
@@ -120,34 +120,29 @@ router.get('/commute/:commuteId/leg-options/:legOrder', async (req, res) => {
  * Body:
  * {
  *   beginningLegOrder: number,                 // Which leg to start calculating from (0 = all legs)
- *   firstLegTripId: string (optional),         // If provided, use this trip for the beginning leg
- *   firstLegRouteInfo: {                       // Route info for the selected trip (from leg-options response)
- *     routeId: string,
- *     routeName: string,
- *     direction: string
- *   } (optional, required if firstLegTripId provided),
- *   customWalkTimes: [number] (optional),      // Override walk times [walkAfterLeg0, walkAfterLeg1, ...]
- *   startTime: ISO string (optional)           // When to start calculating (for mid-commute)
+ *   selectedTrips: [                           // Array matching leg indices, null = auto-select
+ *     null,                                    // Leg 0: auto-select
+ *     { tripId: "123", routeInfo: {...} },     // Leg 1: user selected this trip
+ *     null,                                    // Leg 2: auto-select
+ *     ...
+ *   ],
+ *   customWalkTimes: [number | null],          // Override walk times [null, 5, null, ...] (index = leg that FOLLOWS the walk)
+ *   startTime: ISO string (optional)           // When to start calculating (e.g., arrival time of in-transit leg + walk)
  * }
+ * 
+ * Response includes the actual walk times used (from custom, stored, or calculated)
  */
 router.post('/commute/:commuteId/calculate', async (req, res) => {
     try {
         const userId = req.session.user.userId;
         const { commuteId } = req.params;
-        const { beginningLegOrder = 0, firstLegTripId, firstLegRouteInfo, customWalkTimes, startTime } = req.body;
+        const { beginningLegOrder = 0, selectedTrips = [], customWalkTimes = [], startTime } = req.body;
         
         // Fetch the commute
         const commute = await userData.getCommuteById(userId, commuteId);
         
         if (beginningLegOrder < 0 || beginningLegOrder >= commute.legs.length) {
             return res.status(400).json({ error: 'Invalid beginning leg order' });
-        }
-        
-        // If firstLegTripId is provided, firstLegRouteInfo must also be provided
-        if (firstLegTripId && !firstLegRouteInfo) {
-            return res.status(400).json({ 
-                error: 'firstLegRouteInfo is required when firstLegTripId is provided' 
-            });
         }
         
         const legsToCalculate = commute.legs.slice(beginningLegOrder);
@@ -159,7 +154,7 @@ router.post('/commute/:commuteId/calculate', async (req, res) => {
         const stopMap = Object.fromEntries(stopObjects.map(s => [s.stopId, s]));
         
         const legDetails = [];
-        const walkTimes = [];
+        const walkTimesUsed = [];
         let currentMinTime = startTime ? new Date(startTime) : new Date();
         
         for (let i = 0; i < legsToCalculate.length; i++) {
@@ -168,47 +163,79 @@ router.post('/commute/:commuteId/calculate', async (req, res) => {
             const helper = helpers[leg.transitMode];
             
             if (!helper) {
-                return res.status(400).json({ 
-                    error: `Unsupported transit mode for leg ${actualLegOrder}: ${leg.transitMode}` 
+                // Return partial results with unsupported mode info
+                legDetails.push({
+                    legOrder: actualLegOrder,
+                    transitMode: leg.transitMode,
+                    originStopId: leg.originStopId,
+                    originStopName: leg.originStopName,
+                    destinationStopId: leg.destinationStopId,
+                    destinationStopName: leg.destinationStopName,
+                    error: `Live data unavailable for ${leg.transitMode}`,
+                    unsupported: true
                 });
+                
+                // Still calculate walk time for next leg if applicable
+                if (i < legsToCalculate.length - 1) {
+                    const walkTimeIndex = actualLegOrder + 1;
+                    let walkTime;
+                    if (customWalkTimes && customWalkTimes[walkTimeIndex] != null) {
+                        walkTime = customWalkTimes[walkTimeIndex];
+                    } else {
+                        walkTime = legsToCalculate[i+1].walkingTimeAfterMinutes || 5;
+                    }
+                    walkTimesUsed.push({ legIndex: walkTimeIndex, minutes: walkTime, source: customWalkTimes[walkTimeIndex] != null ? 'custom' : 'stored' });
+                }
+                continue;
             }
             
             try {
                 let details;
+
+                // Check if user selected a specific trip for this leg
+                const selectedTrip = selectedTrips[actualLegOrder];
                 
-                if (i === 0 && firstLegTripId) {
-                    // First leg: user selected a specific trip
-                    // We need to get the trip details, but we don't know which route it is
-                    // from the stored routes array unless we check all of them
-                    // Simpler: just get the trip details and use the provided route info
-                    details = await helper.getTripDetails(leg, currentMinTime, firstLegTripId);
-                    // Override with the route info we got from leg-options
-                    details.routeId = firstLegRouteInfo.routeId;
-                    details.routeName = firstLegRouteInfo.routeName;
-                    details.direction = firstLegRouteInfo.direction;
+                if (selectedTrip && selectedTrip.tripId) {
+                    // User selected a specific trip for this leg
+                    details = await helper.getTripDetails(leg, currentMinTime, selectedTrip.tripId);
+                    // Override with the route info from the selection
+                    details.routeId = selectedTrip.routeInfo.routeId;
+                    details.routeName = selectedTrip.routeInfo.routeName;
+                    details.direction = selectedTrip.routeInfo.direction;
                 } else {
-                    // Subsequent legs: auto-select earliest available
-                    // getTripDetails will call getAvailableTrips which uses leg.routes
+                    // Auto-select earliest available trip
                     details = await helper.getTripDetails(leg, currentMinTime, null);
                 }
                 
                 legDetails.push({
                     ...details,
-                    legOrder: actualLegOrder
+                    legOrder: actualLegOrder,
+                    transitMode: leg.transitMode
                 });
                 
                 // Calculate walk time to next leg (if there is one)
                 if (i < legsToCalculate.length - 1) {
-                    let walkTime;
-                    
                     // Priority: custom > stored preference > GPS calculation
                     const walkTimeIndex = actualLegOrder + 1;
+                    let walkTime;
+                    let walkSource;
+
                     if (customWalkTimes && customWalkTimes[walkTimeIndex] != null)
+                    {
                         walkTime = customWalkTimes[walkTimeIndex];
+                        walkSource = 'custom';
+                    }
                     else
-                        walkTime = legsToCalculate[i+1].walkingTimeAfterMinutes;
+                    {
+                        walkTime = legsToCalculate[i+1].walkingTimeAfterMinutes || 5;
+                        walkSource = 'stored';
+                    }
                     
-                    walkTimes.push(walkTime);
+                    walkTimesUsed.push({ 
+                        legIndex: walkTimeIndex, 
+                        minutes: walkTime, 
+                        source: walkSource 
+                    });
                     
                     // Update minimum start time for next leg
                     currentMinTime = new Date(details.arrivalTime);
@@ -217,20 +244,58 @@ router.post('/commute/:commuteId/calculate', async (req, res) => {
                 
             } catch (error) {
                 // No trips available for this leg
-                return res.json({
-                    error: error.message || `No trips available for leg ${actualLegOrder}`,
+                legDetails.push({
                     legOrder: actualLegOrder,
-                    partialResults: legDetails.length > 0 ? { 
-                        legs: legDetails, 
-                        walkTimes 
-                    } : null
+                    transitMode: leg.transitMode,
+                    originStopId: leg.originStopId,
+                    originStopName: leg.originStopName,
+                    destinationStopId: leg.destinationStopId,
+                    destinationStopName: leg.destinationStopName,
+                    error: error.message || `No trips available`,
+                    unavailable: true
+                });
+
+                // Mark subsequent legs as dependent on this unavailable leg
+                for (let j = i + 1; j < legsToCalculate.length; j++) {
+                    const futureLeg = legsToCalculate[j];
+                    legDetails.push({
+                        legOrder: beginningLegOrder + j,
+                        transitMode: futureLeg.transitMode,
+                        originStopId: futureLeg.originStopId,
+                        originStopName: futureLeg.originStopName,
+                        destinationStopId: futureLeg.destinationStopId,
+                        destinationStopName: futureLeg.destinationStopName,
+                        error: 'Previous leg unavailable',
+                        dependencyError: true
+                    });
+                }
+
+                return res.json({
+                    success: false,
+                    error: error.message || `No trips available for leg ${actualLegOrder}`,
+                    errorLegOrder: actualLegOrder,
+                    beginningLegOrder: beginningLegOrder,
+                    legs: legDetails,
+                    walkTimes: walkTimesUsed
                 });
             }
         }
+
+        const successfulLegs = legDetails.filter(l => !l.error);
+
+        if (successfulLegs.length === 0) {
+            return res.json({
+                success: false,
+                error: 'No legs could be calculated',
+                beginningLegOrder: beginningLegOrder,
+                legs: legDetails,
+                walkTimes: walkTimesUsed
+            });
+        }
         
-        // Calculate totals
-        const firstDeparture = new Date(legDetails[0].departureTime);
-        const lastArrival = new Date(legDetails[legDetails.length - 1].arrivalTime);
+        // Calculate totals from successful legs
+        const firstDeparture = new Date(successfulLegs[0].departureTime);
+        const lastArrival = new Date(successfulLegs[successfulLegs.length - 1].arrivalTime);
         const totalDuration = Math.round((lastArrival - firstDeparture) / (1000 * 60));
         
         // Update lastUsed timestamp
@@ -240,12 +305,12 @@ router.post('/commute/:commuteId/calculate', async (req, res) => {
             success: true,
             beginningLegOrder: beginningLegOrder,
             legs: legDetails,
-            walkTimes: walkTimes,
+            walkTimes: walkTimesUsed,
             totalDuration: totalDuration,
-            totalTransitTime: legDetails.reduce((sum, leg) => sum + leg.duration, 0),
-            totalWalkTime: walkTimes.reduce((sum, time) => sum + time, 0),
-            departureTime: legDetails[0].departureTime,
-            arrivalTime: legDetails[legDetails.length - 1].arrivalTime,
+            totalTransitTime: successfulLegs.reduce((sum, leg) => sum + (leg.duration || 0), 0),
+            totalWalkTime: walkTimesUsed.reduce((sum, w) => sum + w.minutes, 0),
+            departureTime: successfulLegs[0].departureTime,
+            arrivalTime: successfulLegs[successfulLegs.length - 1].arrivalTime,
             feasibilityScore: 10 // TODO: Calculate from reports subcollection
         });
         
@@ -258,7 +323,7 @@ router.post('/commute/:commuteId/calculate', async (req, res) => {
 /**
  * GET /dashboard-api/commutes
  * Get all commutes for the logged-in user
- * (In case you need this for initial page load)
+ * (In case we need this for initial page load)
  */
 router.get('/commutes', async (req, res) => {
     try {
@@ -268,6 +333,62 @@ router.get('/commutes', async (req, res) => {
     } catch (error) {
         console.error('Error fetching commutes:', error);
         res.status(500).json({ error: 'Failed to fetch commutes' });
+    }
+});
+
+/**
+ * GET /api/commute/:commuteId/feasibility
+ * Get feasibility score for a commute based on reports at its stations
+ * 
+ * Returns:
+ * {
+ *   score: number (1-10),
+ *   level: 'good' | 'moderate' | 'poor',
+ *   message: string
+ * }
+ * 
+ * Score calculation (TODO - implement properly):
+ * - 7-10: Good (green) - few or no issues reported
+ * - 4-6: Moderate (yellow) - some issues reported
+ * - 1-3: Poor (red) - many issues reported
+ */
+router.get('/commute/:commuteId/feasibility', async (req, res) => {
+    try {
+        const userId = req.session.user.userId;
+        const { commuteId } = req.params;
+        
+        // Verify the commute exists and belongs to user
+        const commute = await userData.getCommuteById(userId, commuteId);
+        
+        // TODO: Calculate actual score based on:
+        // - Number of active accessibility issues at stops
+        // - Typical delay frequency for routes
+        // - Transfer distance difficulty
+        // For now, return dummy score of 10
+        
+        const score = 10;
+        
+        let level, message;
+        if (score >= 7) {
+            level = 'good';
+            message = 'Route conditions are good';
+        } else if (score >= 4) {
+            level = 'moderate';
+            message = 'Some issues reported on this route';
+        } else {
+            level = 'poor';
+            message = 'Multiple issues reported on this route';
+        }
+        
+        res.json({
+            score,
+            level,
+            message
+        });
+        
+    } catch (error) {
+        console.error('Error fetching feasibility:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch feasibility score' });
     }
 });
 
