@@ -1,6 +1,20 @@
 import * as apiCalls from '../api/mta/bus/APICalls.js';
 import { stopsCollection, routesCollection } from '../config/mongoCollections.js';
 import { StatusError } from './helpers.js';
+const tripCache = new Map();
+const TRIP_CACHE_TTL_MS = 60 * 1000; 
+function setTripCache(tripId, payload) {
+  tripCache.set(tripId, { ...payload, _cachedAt: Date.now() });
+}
+function getTripCache(tripId) {
+  const v = tripCache.get(tripId);
+  if (!v) return null;
+  if (Date.now() - v._cachedAt > TRIP_CACHE_TTL_MS) {
+    tripCache.delete(tripId);
+    return null;
+  }
+  return v;
+}
 
 /**
  * ============================================================================
@@ -34,26 +48,26 @@ import { StatusError } from './helpers.js';
  */
 // routeId fully qualified for siri: "MTA NYCT_B63"
 
-function journeyGoesToDestination(mvj, destinationStopId) {
-  // destinationStopId: "MTA_801042" 
-  const onward = mvj?.OnwardCalls?.OnwardCall || [];
-  for (const c of onward) {
-    if (c?.StopPointRef === destinationStopId) return true;
-  }
+// function journeyGoesToDestination(mvj, destinationStopId) {
+//   // destinationStopId: "MTA_801042" 
+//   const onward = mvj?.OnwardCalls?.OnwardCall || [];
+//   for (const c of onward) {
+//     if (c?.StopPointRef === destinationStopId) return true;
+//   }
 
-  // sometimes DestinationRef is the same as destination
-  if (mvj?.DestinationRef === destinationStopId) return true;
+//   // sometimes DestinationRef is the same as destination
+//   if (mvj?.DestinationRef === destinationStopId) return true;
 
-  return false;
-}
+//   return false;
+// }
 export const getAvailableTrips = async (leg, minDepartureTime = null) => {
     const allAvailableTrips = [];
     
     // Extract the actual stop code (remove NJTB_ prefix)
     // Database: "NJTB_20883" -> API expects: "20883"
-    const stopCode = leg.originStopId.replace(/^MTA_SUBWAY_/, '');
-    // destinationStopId 예: "MTA_801042"  (DB stopId랑 포맷 맞춰야 함)
-    const destStopId = leg.destinationStopId.replace(/^MTA_SUBWAY_/, 'MTA_');  
+    const stopCode = leg.originStopId.replace(/^MTA_BUS_/, '');
+    // destinationStopId 예: "MTA_801042"  
+    const destStopId = leg.destinationStopId.replace(/^MTA_BUS_/, 'MTA_');  
     // Loop through all stored routes for this leg
     for (const route of leg.routes) {
         try {
@@ -82,7 +96,38 @@ export const getAvailableTrips = async (leg, minDepartureTime = null) => {
                 if (tripTime < minTime) continue;
                 }
                 //check direction
-                if (!journeyGoesToDestination(mvj, destStopId)) continue;
+                // if (!journeyGoesToDestination(mvj, destStopId)) continue;
+                const onward = mvj?.OnwardCalls?.OnwardCall || [];
+                let destCall = null;
+                for (const c of onward) {
+                    if (c?.StopPointRef === destStopId) { destCall = c; break; }
+                }
+                const originTime =
+                    mvj?.MonitoredCall?.ExpectedArrivalTime ||
+                    mvj?.MonitoredCall?.AimedArrivalTime ||
+                    mvj?.MonitoredCall?.ExpectedDepartureTime ||
+                    mvj?.MonitoredCall?.AimedDepartureTime ||
+                    null;
+                const destTime =
+                    destCall?.ExpectedArrivalTime ||
+                    destCall?.AimedArrivalTime ||
+                    destCall?.ExpectedDepartureTime ||
+                    destCall?.AimedDepartureTime ||
+                    null;
+                if (!destCall && mvj?.DestinationRef !== destStopId) continue;
+
+
+                setTripCache(tripId, {
+                    routeId: route.routeId,
+                    routeName: route.routeName,
+                    direction: mvj?.DestinationName || '',
+                    originStopId: leg.originStopId,
+                    destinationStopId: leg.destinationStopId,
+                    originTime,
+                    destTime,
+                    originStopName: leg.originStopName || '',
+                    destinationStopName: destCall?.StopPointName || leg.destinationStopName || ''
+                });
                 allAvailableTrips.push({
                     routeId: route.routeId,
                     routeName: route.routeName,
@@ -137,76 +182,53 @@ export const getAvailableTrips = async (leg, minDepartureTime = null) => {
  * 
  * @throws {StatusError} 404 if trip not found or no trips available
  */
-// export const getTripDetails = async (leg, minDepartureTime, selectedTripId = null) => {
-//     let tripId, schedDepTime, routeId, routeName, direction;
+export const getTripDetails = async (leg, minDepartureTime, selectedTripId = null) => {
+    let tripId, schedDepTime, routeId, routeName, direction;
     
-//     if (selectedTripId) {
-//         // User selected a specific trip (first leg)
-//         tripId = selectedTripId;
-//         // We might not have schedDepTime, getTripStops can handle that
-//         schedDepTime = null;
-//     } else {
-//         // Auto-select earliest available trip
-//         const availableTrips = await getAvailableTrips(leg, minDepartureTime);
+    if (selectedTripId) {
+        // User selected a specific trip (first leg)
+        tripId = selectedTripId;
+        // We might not have schedDepTime, getTripStops can handle that
+        schedDepTime = null;
+    } else {
+        // Auto-select earliest available trip
+        const availableTrips = await getAvailableTrips(leg, minDepartureTime);
         
-//         if (availableTrips.length === 0) {
-//             throw new StatusError(
-//                 `No trips available for leg from ${leg.originStopName} to ${leg.destinationStopName} after ${minDepartureTime.toLocaleTimeString()}`,
-//                 404
-//             );
-//         }
+        if (availableTrips.length === 0) {
+            throw new StatusError(
+                `No trips available for leg from ${leg.originStopName} to ${leg.destinationStopName} after ${minDepartureTime.toLocaleTimeString()}`,
+                404
+            );
+        }
         
-//         // Use earliest trip
-//         const earliestTrip = availableTrips[0];
-//         tripId = earliestTrip.tripId;
-//         schedDepTime = earliestTrip.scheduledDepartureTime;
-//         routeId = earliestTrip.routeId;
-//         routeName = earliestTrip.routeName;
-//         direction = earliestTrip.direction;
-//     }
-    
-//     // Get stop details for this trip
-//     const tripStops = await apiCalls.getTripStops(tripId, schedDepTime || '');
-    
-//     // API returns stopIds without prefix (e.g., "20883")
-//     // Database has stopIds with prefix (e.g., "NJTB_20883")
-//     // So we need to strip the prefix for comparison
-//     const originStopCode = leg.originStopId.replace(/^NJTB_/, '');
-//     const destinationStopCode = leg.destinationStopId.replace(/^NJTB_/, '');
-    
-//     const originStop = tripStops.find(stop => stop.StopID === originStopCode);
-//     const destinationStop = tripStops.find(stop => stop.StopID === destinationStopCode);
-    
-//     if (!originStop) {
-//         throw new StatusError(
-//             `Origin stop ${leg.originStopId} not found in trip ${tripId}`,
-//             404
-//         );
-//     }
-//     if (!destinationStop) {
-//         throw new StatusError(
-//             `Destination stop ${leg.destinationStopId} not found in trip ${tripId}`,
-//             404
-//         );
-//     }
-    
-//     // Calculate duration
-//     const departureTime = new Date(originStop.ApproxTime);
-//     const arrivalTime = new Date(destinationStop.ApproxTime);
-//     const durationMinutes = Math.round((arrivalTime - departureTime) / (1000 * 60));
-    
-//     return {
-//         tripId: tripId,
-//         routeId: routeId, // Will be undefined if selectedTripId was provided - caller will set it
-//         routeName: routeName, // Will be undefined if selectedTripId was provided - caller will set it
-//         direction: direction, // Will be undefined if selectedTripId was provided - caller will set it
-//         originStopId: leg.originStopId, // Use database format with prefix
-//         originStopName: originStop.Description,
-//         destinationStopId: leg.destinationStopId, // Use database format with prefix
-//         destinationStopName: destinationStop.Description,
-//         departureTime: originStop.ApproxTime,
-//         arrivalTime: destinationStop.ApproxTime,
-//         duration: durationMinutes
-//     };
-// };
+        // Use earliest trip
+        const earliestTrip = availableTrips[0];
+        tripId = earliestTrip.tripId;
+        schedDepTime = earliestTrip.scheduledDepartureTime;
+        routeId = earliestTrip.routeId;
+        routeName = earliestTrip.routeName;
+        direction = earliestTrip.direction;
+    }
+    const cached = getTripCache(tripId);
+    if (cached && cached.originTime && cached.destTime) {
+    const departureTime = new Date(cached.originTime);
+    const arrivalTime = new Date(cached.destTime);
+    const durationMinutes = Math.round((arrivalTime - departureTime) / (1000 * 60));
+
+    return {
+        tripId: tripId,
+        routeId: routeId,
+        routeName: routeName,
+        direction: direction,
+        originStopId: leg.originStopId,
+        originStopName: cached.originStopName || leg.originStopName || '',
+        destinationStopId: leg.destinationStopId,
+        destinationStopName: cached.destinationStopName || leg.destinationStopName || '',
+        departureTime: cached.originTime,
+        arrivalTime: cached.destTime,
+        duration: durationMinutes
+    };
+    }
+
+};
 
