@@ -233,7 +233,7 @@ async function seed() {
     
     console.log(`Inserting ${finalStops.length} Stops...`);
     const stopsCol = await stopsCollection();
-    await stopsCol.deleteMany({});
+    await stopsCol.deleteMany({transitSystem: "MTA_SUBWAY"});
     await stopsCol.insertMany(finalStops);
     // console.log(
     // "has 713S in stop_times?",

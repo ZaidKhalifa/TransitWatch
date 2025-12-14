@@ -38,11 +38,13 @@ const decodeFeed = (buffer) => {
         new Uint8Array(buffer)
     );
 };
+const SUBWAY_GROUPS = ['ace', 'bdfm','g', 'jz', 'nqrw', 'l','7', 'si'];
 
-// group: 'ace' | 'bdfm' | 'nqrw' | '123' | '456' | '7' | 'l'
 export async function getMtaSubwayFeed(group = 'ace') {
-  const path = `/nyct%2Fgtfs-${group}`;
-
+  const path = 
+    group === 'gtfs'
+      ? `/nyct%2Fgtfs`
+      : `/nyct%2Fgtfs-${group}`;
   try {
     const response = await gtfsClient.get(path);
     return decodeFeed(response.data); // FeedMessage 
@@ -88,7 +90,6 @@ export async function getMtaSubwayRealtime(group = 'ace') {
   };
 }
 
-const SUBWAY_GROUPS = ['ace', 'bdfm', 'nqrw', '123', '456', '7', 'l'];
 function extractArrivalsFromTripUpdates(tripUpdates, stopId, nowEpochSec = null) {
   const results = [];
   const now = nowEpochSec ?? Math.floor(Date.now() / 1000);
