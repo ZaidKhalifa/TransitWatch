@@ -37,8 +37,10 @@ router.get('/api/stops/:transitSystem', async (req, res) => {
   }
 });
 
+
 /**
  * GET /commutes/api/destinations/:originStopId
+ * FIXED: Show ALL valid destinations in same transit system
  */
 router.get('/api/destinations/:originStopId', async (req, res) => {
   try {
@@ -46,27 +48,22 @@ router.get('/api/destinations/:originStopId', async (req, res) => {
 
     const origin = await stops.findOne(
       { stopId: req.params.originStopId },
-      { projection: { transitSystem: 1, routes: 1 } }
+      { projection: { transitSystem: 1 } }
     );
 
-    if (!origin || !origin.routes?.length) {
+    if (!origin) {
       return res.json([]);
     }
-
-    const routeIds = origin.routes.map(r => r.routeId);
 
     const destinations = await stops
       .find(
         {
           transitSystem: origin.transitSystem,
-          stopId: { $ne: origin.stopId },
-          routes: {
-            $elemMatch: { routeId: { $in: routeIds } }
-          }
+          stopId: { $ne: req.params.originStopId }
         },
         { projection: { stopId: 1, stopName: 1 } }
       )
-      .limit(50)
+      .sort({ stopName: 1 })
       .toArray();
 
     res.json(destinations);
@@ -75,6 +72,7 @@ router.get('/api/destinations/:originStopId', async (req, res) => {
     res.json([]);
   }
 });
+
 
 /* =========================
    GET /commutes/new

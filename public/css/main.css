@@ -2055,3 +2055,21 @@ input::placeholder { color: rgba(255,255,255,0.45); }
     font-size: 0.95rem;
   }
 }
+
+/* ================================
+   ADD COMMUTE – FORCE FULL WIDTH
+================================ */
+
+#legsContainer {
+  width: 100%;
+}
+
+#legsContainer .leg-card {
+  width: 100%;
+  max-width: none !important;
+  min-width: 100%;
+}
+
+#legsContainer .grid-3 {
+  width: 100%;
+}
