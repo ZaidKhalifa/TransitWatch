@@ -2,6 +2,14 @@ import axios from 'axios';
 import GtfsRealtimeBindings from 'gtfs-realtime-bindings';
 import '../../../config.js';
 import FormData from 'form-data';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get directory of this file for token storage
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const TOKEN_FILE = path.join(__dirname, '.njt_rail_tokens.json');
 
 let APItoken = null;
 let APItokenExpiry = null;
@@ -12,6 +20,53 @@ const GTFS_BASE_URL = 'https://testraildata.njtransit.com/api/GTFSRT';
 
 let GTFStoken = null;
 let GTFStokenExpiry = null;
+
+// TOKEN PERSISTENCE - Save/Load tokens to survive server restarts
+
+function loadTokensFromFile() {
+  try {
+    if (fs.existsSync(TOKEN_FILE)) {
+      const data = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'));
+      
+      // Load Rail token if not expired
+      if (data.railToken && data.railExpiry && Date.now() < data.railExpiry) {
+        APItoken = data.railToken;
+        APItokenExpiry = data.railExpiry;
+        console.log('Loaded cached NJT Rail token (expires in', Math.round((APItokenExpiry - Date.now()) / 1000 / 60), 'min)');
+      }
+      
+      // Load GTFS token if not expired
+      if (data.gtfsToken && data.gtfsExpiry && Date.now() < data.gtfsExpiry) {
+        GTFStoken = data.gtfsToken;
+        GTFStokenExpiry = data.gtfsExpiry;
+        console.log('Loaded cached NJT GTFS token (expires in', Math.round((GTFStokenExpiry - Date.now()) / 1000 / 60), 'min)');
+      }
+    }
+  } catch (err) {
+    console.warn('Could not load cached NJT tokens:', err.message);
+  }
+}
+
+function saveTokensToFile() {
+  try {
+    const data = {
+      railToken: APItoken,
+      railExpiry: APItokenExpiry,
+      gtfsToken: GTFStoken,
+      gtfsExpiry: GTFStokenExpiry,
+      savedAt: new Date().toISOString()
+    };
+    fs.writeFileSync(TOKEN_FILE, JSON.stringify(data, null, 2));
+    console.log('Saved NJT tokens to cache file');
+  } catch (err) {
+    console.error('Could not save NJT tokens:', err.message);
+  }
+}
+
+// Load tokens on module initialization
+loadTokensFromFile();
+
+// AUTHENTICATION
 
 async function authenticateRail() {
     const formData = new FormData();
@@ -26,11 +81,13 @@ async function authenticateRail() {
     if (response.data.Authenticated === 'True') {
         APItoken = response.data.UserToken;
         APItokenExpiry = Date.now() + (23 * 60 * 60 * 1000);
-        console.log('NJT authenticated');
+        console.log('NJT Rail authenticated (new token)');
+        saveTokensToFile(); // Persist the new token
     } else {
         throw new Error('NJT auth failed');
     }
 }
+
 async function authenticateGTFS() {
   const formData = new FormData();
   formData.append('username', process.env.NJT_API_USERNAME);
@@ -41,18 +98,21 @@ async function authenticateGTFS() {
   if (response.data.Authenticated === 'True') {
     GTFStoken = response.data.UserToken;
     GTFStokenExpiry = Date.now() + (23 * 60 * 60 * 1000);
-    console.log('NJT GTFSRT authenticated');
+    console.log('NJT GTFSRT authenticated (new token)');
+    saveTokensToFile(); // Persist the new token
   } else {
     throw new Error('NJT GTFSRT auth failed');
   }
 }
+
 async function getRailToken() {
-    if (APItoken && Date.now()<APItokenExpiry){
-        return APItoken
+    if (APItoken && Date.now() < APItokenExpiry) {
+        return APItoken;
     }
     await authenticateRail();
-    return APItoken
+    return APItoken;
 }
+
 async function getGTFSToken() {
   if (GTFStoken && Date.now() < GTFStokenExpiry) {
     return GTFStoken;
