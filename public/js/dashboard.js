@@ -480,7 +480,20 @@
                             <span class="commute-leg-count">${commute.legs.length} leg${commute.legs.length > 1 ? 's' : ''}</span>
                         </div>
                     </div>
-                    ${feasibilityHtml}
+                    <div class="commute-header-right">
+                        ${feasibilityHtml}
+                        <div class="commute-menu-wrapper">
+                            <button class="commute-menu-btn" data-commute-id="${commuteId}" title="Options">⋮</button>
+                            <div class="commute-menu" data-commute-id="${commuteId}">
+                                <a href="/commutes/edit/${commuteId}" class="commute-menu-item">
+                                    ✏️ Edit
+                                </a>
+                                <button class="commute-menu-item danger" data-action="delete" data-commute-id="${commuteId}" data-commute-name="${escapeHtml(commute.name)}">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="commute-legs-container">
@@ -726,6 +739,15 @@
         state.commutes.forEach(commute => {
             attachEventListenersForCommute(commute._id);
         });
+        
+        // Close menus when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.commute-menu-wrapper')) {
+                document.querySelectorAll('.commute-menu.active').forEach(menu => {
+                    menu.classList.remove('active');
+                });
+            }
+        });
     }
 
     /**
@@ -735,6 +757,30 @@
     function attachEventListenersForCommute(commuteId) {
         const card = containerEl.querySelector(`.commute-card[data-commute-id="${commuteId}"]`);
         if (!card) return;
+        
+        // Three-dot menu toggle
+        const menuBtn = card.querySelector('.commute-menu-btn');
+        const menu = card.querySelector('.commute-menu');
+        if (menuBtn && menu) {
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Close other menus
+                document.querySelectorAll('.commute-menu.active').forEach(m => {
+                    if (m !== menu) m.classList.remove('active');
+                });
+                menu.classList.toggle('active');
+            });
+        }
+        
+        // Delete button
+        const deleteBtn = card.querySelector('.commute-menu-item[data-action="delete"]');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const commuteName = deleteBtn.dataset.commuteName;
+                showDeleteModal(commuteId, commuteName);
+            });
+        }
         
         // Trip dropdowns
         card.querySelectorAll('.leg-trip-select').forEach(select => {
@@ -769,6 +815,99 @@
         if (moreBtn) {
             moreBtn.removeEventListener('click', handleMoreDetails);
             moreBtn.addEventListener('click', handleMoreDetails);
+        }
+    }
+
+    // Delete Modal Functions
+    
+    function showDeleteModal(commuteId, commuteName) {
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('delete-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'delete-modal';
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3 class="modal-title">Delete Commute</h3>
+                    <p class="modal-body">Are you sure you want to delete "<span id="delete-commute-name"></span>"? This cannot be undone.</p>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" id="delete-cancel">Cancel</button>
+                        <button class="btn btn-danger" id="delete-confirm">Delete</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Cancel button
+            modal.querySelector('#delete-cancel').addEventListener('click', hideDeleteModal);
+            
+            // Close on overlay click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideDeleteModal();
+            });
+            
+            // Close on escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') hideDeleteModal();
+            });
+        }
+        
+        // Set commute name and ID
+        modal.querySelector('#delete-commute-name').textContent = commuteName;
+        modal.dataset.commuteId = commuteId;
+        
+        // Confirm button
+        const confirmBtn = modal.querySelector('#delete-confirm');
+        confirmBtn.onclick = () => handleDeleteConfirm(commuteId);
+        
+        // Show modal
+        modal.classList.add('active');
+    }
+    
+    function hideDeleteModal() {
+        const modal = document.getElementById('delete-modal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+    
+    async function handleDeleteConfirm(commuteId) {
+        const modal = document.getElementById('delete-modal');
+        const confirmBtn = modal.querySelector('#delete-confirm');
+        
+        try {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+            
+            const response = await fetch(`/api/commute/${commuteId}`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete commute');
+            }
+            
+            // Remove from state
+            state.commutes = state.commutes.filter(c => c._id !== commuteId);
+            delete state.commuteStates[commuteId];
+            
+            // Hide modal
+            hideDeleteModal();
+            
+            // Re-render
+            if (state.commutes.length === 0) {
+                showEmpty();
+            } else {
+                renderAllCommutes();
+            }
+            
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Failed to delete commute: ' + error.message);
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Delete';
         }
     }
 

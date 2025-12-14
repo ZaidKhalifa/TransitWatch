@@ -140,3 +140,61 @@ export const deleteCommute = async (userId, commuteId) => {
         throw new Error('Failed to delete commute');
     }
 };
+
+/**
+ * Update an existing commute
+ * 
+ * @param {string} userId - User's ID from session
+ * @param {string|ObjectId} commuteId - The commute's ObjectId
+ * @param {Object} commuteData - Updated commute data { name, legs }
+ * @returns {Object} The updated commute
+ */
+export const updateCommute = async (userId, commuteId, commuteData) => {
+    const commuteObjectId = typeof commuteId === 'string' ? new ObjectId(commuteId) : commuteId;
+    
+    // Validate name
+    if (!commuteData.name || typeof commuteData.name !== 'string' || commuteData.name.trim().length === 0) {
+        throw new StatusError("The commute name must not be empty");
+    }
+    const name = commuteData.name.trim();
+    if (!/^[a-zA-Z0-9\s_-]+$/.test(name)) {
+        throw new StatusError("The commute name can only have letters, numbers, spaces, hyphens and underscores");
+    }
+    
+    const users = await usersCollection();
+    
+    // First verify the commute exists and belongs to user
+    const existing = await users.findOne(
+        { 
+            userId: userId,
+            'savedCommutes._id': commuteObjectId
+        },
+        { collation: { locale: 'en', strength: 2 } }
+    );
+    
+    if (!existing) {
+        throw new StatusError('Commute not found', 404);
+    }
+    
+    // Update the commute
+    const result = await users.updateOne(
+        { 
+            userId: userId,
+            'savedCommutes._id': commuteObjectId
+        },
+        {
+            $set: {
+                'savedCommutes.$.name': name,
+                'savedCommutes.$.legs': commuteData.legs,
+                'savedCommutes.$.lastUsed': new Date()
+            }
+        },
+        { collation: { locale: 'en', strength: 2 } }
+    );
+    
+    if (result.modifiedCount === 0) {
+        throw new StatusError('Failed to update commute', 500);
+    }
+    
+    return { _id: commuteObjectId, name, legs: commuteData.legs };
+};

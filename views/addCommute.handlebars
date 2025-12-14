@@ -1,8 +1,9 @@
 <div class="page-shell">
   <div class="page-header">
-    <h1 class="page-title">New Commute</h1>
+    <h1 class="page-title">{{#if isEditMode}}Edit Commute{{else}}New Commute{{/if}}</h1>
     <p class="page-subtitle">
-      Build your multi-leg commute by selecting a system, origin, and destination.
+      Build your multi-leg commute by selecting stops. You can start with any field - 
+      the others will auto-filter based on your selection.
     </p>
   </div>
 
@@ -36,10 +37,14 @@
       <div class="form-alert alert-error">⚠️ {{error}}</div>
     {{/if}}
 
-    <form method="POST" action="/commutes">
+    {{#if success}}
+      <div class="form-alert alert-success">{{success}}</div>
+    {{/if}}
+
+    <form method="POST" action="{{#if isEditMode}}/commutes/edit/{{commuteId}}{{else}}/commutes{{/if}}">
       <div class="form-group">
         <label>Commute Name</label>
-        <input name="name" required />
+        <input name="name" required value="{{name}}" placeholder="e.g. Morning Commute" />
       </div>
 
       <div class="legs-header">
@@ -53,7 +58,9 @@
 
       <div class="form-actions">
         <a href="/dashboard" class="btn btn-secondary">Cancel</a>
-        <button type="submit" class="btn btn-primary">Save Commute</button>
+        <button type="submit" class="btn btn-primary">
+          {{#if isEditMode}}Update Commute{{else}}Save Commute{{/if}}
+        </button>
       </div>
     </form>
   </div>
@@ -72,30 +79,36 @@
       <div class="form-group">
         <label>Transit System</label>
         <select class="transitMode" name="legs[INDEX][transitMode]" required>
-          <option value="">Select system</option>
+          <option value="">Select or auto-detect</option>
           {{#each transitSystems}}
             <option value="{{this}}">{{this}}</option>
           {{/each}}
         </select>
       </div>
 
-      <div class="form-group">
+      <div class="form-group dropdown-wrapper">
         <label>From</label>
-        <input class="origin-input" disabled />
+        <input class="origin-input" placeholder="Click or type to search..." />
         <select class="origin-hidden" name="legs[INDEX][originStopId]" hidden required></select>
         <div class="dropdown origin-list"></div>
       </div>
 
-      <div class="form-group">
+      <div class="form-group dropdown-wrapper">
         <label>To</label>
-        <input class="dest-input" disabled />
+        <input class="dest-input" placeholder="Click or type to search..." />
         <select class="dest-hidden" name="legs[INDEX][destinationStopId]" hidden required></select>
         <div class="dropdown dest-list"></div>
       </div>
     </div>
 
-    <p class="leg-hint">💡 Routes auto-detected on save</p>
+    <p class="leg-hint">💡 Click a locked field to clear and re-select. Routes auto-detected on save.</p>
   </div>
 </template>
+
+{{#if isEditMode}}
+<script>
+  window.existingCommute = {{{existingCommute}}};
+</script>
+{{/if}}
 
 <script src="/js/addCommute.js"></script>

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as userData from '../data/users.js';
+import * as userCommutes from '../data/userCommutes.js';
 import * as transitData from '../data/transitData.js';
 import { stopsCollection } from '../config/mongoCollections.js';
 import { StatusError } from '../helpers/helpers.js';
@@ -82,7 +83,8 @@ router.get('/new', async (req, res) => {
     res.render('addCommute', {
       title: 'New Commute',
       transitSystems,
-      legs: []
+      legs: [],
+      isEditMode: false
     });
   } catch (err) {
     console.error(err);
@@ -94,19 +96,66 @@ router.get('/new', async (req, res) => {
 });
 
 /* =========================
-   POST /commutes
+   GET /commutes/edit/:commuteId
+   ========================= */
+router.get('/edit/:commuteId', async (req, res) => {
+  try {
+    const userId = req.session.user.userId;
+    const commute = await userCommutes.getCommuteById(userId, req.params.commuteId);
+    
+    if (!commute) {
+      return res.status(404).render('error', {
+        title: 'Not Found',
+        error: 'Commute not found'
+      });
+    }
+
+    res.render('addCommute', {
+      title: 'Edit Commute',
+      transitSystems,
+      isEditMode: true,
+      commuteId: req.params.commuteId,
+      existingCommute: JSON.stringify(commute)
+    });
+  } catch (err) {
+    console.error('Edit commute error:', err);
+    res.status(500).render('error', {
+      title: 'Error',
+      error: 'Failed to load commute for editing'
+    });
+  }
+});
+
+/* =========================
+   POST /commutes (Create new)
    ========================= */
 router.post('/', async (req, res) => {
+  return handleCommuteSave(req, res, false);
+});
+
+/* =========================
+   POST /commutes/edit/:commuteId (Update existing)
+   ========================= */
+router.post('/edit/:commuteId', async (req, res) => {
+  return handleCommuteSave(req, res, true, req.params.commuteId);
+});
+
+/**
+ * Shared handler for create and update
+ */
+async function handleCommuteSave(req, res, isEdit, commuteId = null) {
   let { name, legs } = req.body;
   const userId = req.session.user.userId;
 
   const renderWithError = (status, message) =>
     res.status(status).render('addCommute', {
-      title: 'New Commute',
+      title: isEdit ? 'Edit Commute' : 'New Commute',
       transitSystems,
       error: message,
       name,
-      legs
+      legs,
+      isEditMode: isEdit,
+      commuteId
     });
 
   try {
@@ -185,6 +234,21 @@ router.post('/', async (req, res) => {
         );
       }
 
+      // Parse walk time from form (comes as string)
+      let walkTimeAfter = null;
+      let walkTimeUserCustomized = false;
+      
+      if (leg.walkTimeAfter !== undefined && leg.walkTimeAfter !== '') {
+        walkTimeAfter = parseInt(leg.walkTimeAfter);
+        if (isNaN(walkTimeAfter) || walkTimeAfter < 1 || walkTimeAfter > 60) {
+          walkTimeAfter = null;
+        }
+      }
+      
+      if (leg.walkTimeUserCustomized === 'true' || leg.walkTimeUserCustomized === true) {
+        walkTimeUserCustomized = true;
+      }
+
       validatedLegs.push({
         legOrder: i,
         transitMode: leg.transitMode,
@@ -192,34 +256,45 @@ router.post('/', async (req, res) => {
         originStopName: originStop.stopName,
         destinationStopId: destinationStop.stopId,
         destinationStopName: destinationStop.stopName,
-        routes
+        routes,
+        preferences: {
+          walkingTimeAfterMinutes: walkTimeAfter,
+          walkingTimeUserCustomized: walkTimeUserCustomized
+        }
       });
     }
 
-    /* ---------- Save commute ---------- */
-    const savedCommute = {
-  name,
-  legs: validatedLegs
-};
+    /* ---------- Save or Update commute ---------- */
+    const commuteData = {
+      name,
+      legs: validatedLegs
+    };
 
-await userData.addCommute(userId, savedCommute);
-
-return res.render('addCommute', {
-  title: 'New Commute',
-  transitSystems,
-  success: '✅ Commute saved successfully!',
-  savedCommute
-});
+    if (isEdit && commuteId) {
+      // Update existing commute
+      await userCommutes.updateCommute(userId, commuteId, commuteData);
+      return res.redirect('/dashboard');
+    } else {
+      // Create new commute
+      await userData.addCommute(userId, commuteData);
+      return res.render('addCommute', {
+        title: 'New Commute',
+        transitSystems,
+        success: '✅ Commute saved successfully!',
+        savedCommute: commuteData,
+        isEditMode: false
+      });
+    }
 
   } catch (err) {
-    console.error('Add commute error:', err);
+    console.error('Save commute error:', err);
 
     if (err instanceof StatusError) {
       return renderWithError(err.status, err.message);
     }
 
-    return renderWithError(500, 'Failed to add commute');
+    return renderWithError(500, 'Failed to save commute');
   }
-});
+}
 
 export default router;

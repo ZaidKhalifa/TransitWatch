@@ -14,7 +14,25 @@ const helpers = { "NJT_BUS": NJTBusHelpers, "NJT_RAIL": NJTRailHelpers, "MTA_SUB
  * ============================================================================ */
 
 /**
- * GET /dashboard-api/stops/:transitSystem
+ * GET /api/stops
+ * Get all stops (for searching without transit system selected)
+ */
+router.get('/stops', async (req, res) => {
+    try {
+        const stops = await stopsCollection();
+        const allStops = await stops.find(
+            {},
+            { projection: { stopId: 1, stopName: 1, transitSystem: 1, location: 1 } }
+        ).sort({ stopName: 1 }).toArray();
+        res.json(allStops);
+    } catch (e) {
+        console.error('Error fetching all stops:', e);
+        res.status(500).json({ error: 'Failed to fetch stops' });
+    }
+});
+
+/**
+ * GET /api/stops/:transitSystem
  * Get all stops for a transit system (for initial dropdown)
  */
 router.get('/stops/:transitSystem', async (req, res) => {
@@ -52,6 +70,49 @@ router.get('/origins/:destinationStopId', async (req, res) => {
     } catch (error) {
         console.error('Error fetching origins:', error);
         res.status(500).json({ error: 'Failed to fetch origins' });
+    }
+});
+
+/**
+ * GET /api/walk-time
+ * Calculate walking time between two stops
+ * Query params: from (stopId), to (stopId)
+ */
+router.get('/walk-time', async (req, res) => {
+    try {
+        const { from, to } = req.query;
+        
+        if (!from || !to) {
+            return res.status(400).json({ error: 'Missing from or to parameter' });
+        }
+        
+        const stops = await stopsCollection();
+        const [fromStop, toStop] = await Promise.all([
+            stops.findOne({ stopId: from }),
+            stops.findOne({ stopId: to })
+        ]);
+        
+        if (!fromStop || !toStop) {
+            return res.status(404).json({ error: 'Stop not found' });
+        }
+        
+        const fromCoords = fromStop.location?.coordinates;
+        const toCoords = toStop.location?.coordinates;
+        
+        if (!fromCoords || !toCoords) {
+            return res.json({ walkTimeMinutes: 5, estimated: true });
+        }
+        
+        const walkTimeMinutes = transitData.calculateWalkTime(fromCoords, toCoords);
+        
+        res.json({
+            walkTimeMinutes: Math.max(1, Math.min(30, walkTimeMinutes)),
+            estimated: false
+        });
+        
+    } catch (error) {
+        console.error('Error calculating walk time:', error);
+        res.status(500).json({ error: 'Failed to calculate walk time' });
     }
 });
 

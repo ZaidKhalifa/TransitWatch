@@ -2073,3 +2073,359 @@ input::placeholder { color: rgba(255,255,255,0.45); }
 #legsContainer .grid-3 {
   width: 100%;
 }
+
+/* ================================
+   CONNECTION CARDS (Walk Time Between Legs)
+================================ */
+
+.connection-card {
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
+  text-align: center;
+}
+
+.connection-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.walk-icon {
+  font-size: 1.5rem;
+}
+
+.walk-time-display {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.edit-walk-btn {
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: var(--transition-fast);
+}
+
+.edit-walk-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.walk-edit-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.walk-edit-group.hidden {
+  display: none;
+}
+
+.walk-input {
+  width: 60px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.save-walk-btn,
+.cancel-walk-btn {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.save-walk-btn {
+  background: var(--color-accent);
+  color: white;
+  border: none;
+}
+
+.save-walk-btn:hover {
+  background: var(--color-accent-hover);
+}
+
+.cancel-walk-btn {
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.cancel-walk-btn:hover {
+  background: var(--bg-elevated);
+}
+
+.walk-warning {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+/* ================================
+   LOCKED INPUT FIELDS
+================================ */
+
+.origin-input.locked,
+.dest-input.locked {
+  background: var(--bg-elevated);
+  border-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.origin-input.locked:hover,
+.dest-input.locked:hover {
+  opacity: 0.9;
+}
+
+/* ================================
+   DROPDOWN IMPROVEMENTS
+================================ */
+
+.dropdown-wrapper {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+}
+
+.dropdown:empty {
+  display: none;
+}
+
+.dropdown-item {
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.dropdown-item .stop-name {
+  flex: 1;
+}
+
+.dropdown-item .stop-system {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  margin-left: var(--space-sm);
+}
+
+.dropdown-hint {
+  padding: var(--space-md);
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.dropdown-empty {
+  padding: var(--space-md);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* ================================
+   THREE-DOT MENU (Dashboard)
+================================ */
+
+.commute-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.commute-menu-wrapper {
+  position: relative;
+}
+
+.commute-menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: var(--transition-fast);
+}
+
+.commute-menu-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.commute-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 140px;
+  z-index: 100;
+  display: none;
+}
+
+.commute-menu.active {
+  display: block;
+}
+
+.commute-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 0.9375rem;
+}
+
+.commute-menu-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.commute-menu-item.danger {
+  color: var(--color-error);
+}
+
+.commute-menu-item.danger:hover {
+  background: var(--color-error-bg);
+}
+
+/* ================================
+   DELETE MODAL
+================================ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition-base);
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow-xl);
+  transform: scale(0.95);
+  transition: var(--transition-base);
+}
+
+.modal-overlay.active .modal {
+  transform: scale(1);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+}
+
+.modal-body {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+}
+
+/* ================================
+   FORM ALERT IMPROVEMENTS
+================================ */
+
+.form-alert.alert-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+
+/* ================================
+   COMMUTE CARD HEADER LAYOUT
+================================ */
+
+.commute-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.commute-header-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.commute-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
