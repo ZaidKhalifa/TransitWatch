@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   addBtn.onclick = () => {
     if (legCount >= 4) return alert('Max 4 legs allowed');
     addLeg();
+    updateDeleteButtons();
     updateWalkTimeCards();
   };
 
@@ -417,8 +418,19 @@ document.addEventListener('DOMContentLoaded', () => {
       l.querySelector('.leg-number').textContent = i + 1;
     });
     legCount = document.querySelectorAll('.leg-card').length;
+    updateDeleteButtons();
     updateWalkTimeCards();
   }
+
+  // Hide delete buttons when only 1 leg exists
+    function updateDeleteButtons() {
+        const cards = document.querySelectorAll('.leg-card');
+        const removeButtons = document.querySelectorAll('.leg-remove');
+        
+        removeButtons.forEach(btn => {
+            btn.style.display = cards.length <= 1 ? 'none' : '';
+        });
+    }
 
   // ===========================================================================
   // WALK TIME CALCULATIONS
@@ -583,6 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     addLeg();
   }
+  updateDeleteButtons();
 });
 
 /* 🔍 SMART FILTER */
