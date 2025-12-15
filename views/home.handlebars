@@ -9,8 +9,13 @@
             Report accessibility issues. Join 2.5M+ cross-Hudson commuters staying connected.
         </p>
         <div class="hero-actions">
-            <a href="/register" class="btn btn-primary btn-large">Get Started Free</a>
+            {{#if user}}
+            <a href="/dashboard" class="btn btn-primary btn-large">Dashboard</a>
+            <a href="/commutes/new" class="btn btn-secondary btn-large">Add Commute</a>
+            {{else}}
+            <a href="/register" class="btn btn-primary btn-large">Get Started</a>
             <a href="/login" class="btn btn-secondary btn-large">Sign In</a>
+            {{/if}}
         </div>
     </div>
 
@@ -69,8 +74,14 @@
 
 <section class="cta-section">
     <div class="container">
+        {{#if user}}
+        <h2 class="cta-title">Ready to track your commute?</h2>
+        <p class="cta-description">Head to your dashboard to see real-time arrivals.</p>
+        <a href="/dashboard" class="btn btn-primary btn-large">Go to Dashboard</a>
+        {{else}}
         <h2 class="cta-title">Ready to simplify your commute?</h2>
         <p class="cta-description">Join thousands of commuters who've ditched the app juggling.</p>
         <a href="/register" class="btn btn-primary btn-large">Create Your Free Account</a>
+        {{/if}}
     </div>
 </section>
