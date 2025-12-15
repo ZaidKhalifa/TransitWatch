@@ -727,9 +727,8 @@
     function handleMoreDetails(event) {
         const button = event.target;
         const commuteId = button.dataset.commuteId;
-        // For now, just alert - will implement later
-        alert('More details page coming soon!');
-        // TODO: Navigate to /dashboard/commute/${commuteId}/details
+        // Navigate to commute details page
+        window.location.href = `/commutes/${commuteId}/details`;
     }
 
     /**

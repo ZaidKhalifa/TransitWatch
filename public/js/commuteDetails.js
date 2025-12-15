@@ -516,20 +516,20 @@
     const unpopularBtn = document.getElementById('loadUnpopularBtn');
     const noReportsMsg = document.getElementById('noReportsMessage');
 
-    // Hide the unpopular button for now
+    // Hide unpopular button initially
     unpopularBtn.style.display = 'none';
+    
+    // Show loading
+    feed.innerHTML = '<div class="loading-placeholder"><div class="spinner"></div><p>Loading reports...</p></div>';
 
     try {
       // Fetch reports for stops in this commute
       const stopIdsParam = encodeURIComponent(JSON.stringify(state.stopIds));
-      const response = await fetch(`/api/reports/by-stops?stopIds=${stopIdsParam}&popular=${!state.showUnpopular}`);
+      const popularParam = state.showUnpopular ? 'false' : 'true';
+      const response = await fetch(`/api/reports/by-stops?stopIds=${stopIdsParam}&popular=${popularParam}`);
       
-      if (response.status === 404 || !response.ok) {
-        // API doesn't exist yet or error - show no reports message
-        feed.innerHTML = '';
-        noReportsMsg.textContent = 'No reports for any stops in this commute.';
-        noReportsMsg.style.display = 'block';
-        return;
+      if (!response.ok) {
+        throw new Error('Failed to fetch reports');
       }
 
       const data = await response.json();
@@ -539,11 +539,20 @@
         feed.innerHTML = '';
         noReportsMsg.textContent = 'No reports for any stops in this commute.';
         noReportsMsg.style.display = 'block';
+        // Show button to load unpopular/resolved if not already showing
+        if (!state.showUnpopular) {
+          unpopularBtn.textContent = 'Show resolved/unpopular reports';
+          unpopularBtn.style.display = 'block';
+        }
         return;
       }
 
       noReportsMsg.style.display = 'none';
-      unpopularBtn.style.display = state.showUnpopular ? 'none' : 'block';
+      // Show button to load unpopular/resolved if not already showing all
+      if (!state.showUnpopular) {
+        unpopularBtn.textContent = 'Show resolved/unpopular reports';
+        unpopularBtn.style.display = 'block';
+      }
       
       renderReports();
 
@@ -615,26 +624,107 @@
     return card;
   }
 
-  async function handleVote(reportId, vote) {
+  async function handleVote(reportId, clickedVote, button) {
+    // Find the report in state
+    const reportIndex = state.reports.findIndex(r => r._id === reportId || r._id.toString() === reportId);
+    if (reportIndex === -1) return;
+    
+    const report = state.reports[reportIndex];
+    const currentVote = report.userVote || 0;
+    
+    // Determine what vote to send
+    // If clicking the same vote button, toggle it off (send 0)
+    // Otherwise, send the clicked vote
+    const newVote = (currentVote === clickedVote) ? 0 : clickedVote;
+    
+    // Optimistic UI update
+    const card = document.querySelector(`.report-card[data-report-id="${reportId}"]`);
+    const upvoteBtn = card?.querySelector('.vote-btn.upvote');
+    const downvoteBtn = card?.querySelector('.vote-btn.downvote');
+    const netVotesSpan = card?.querySelector('.net-votes');
+    
+    // Calculate new counts optimistically
+    let newUpvotes = report.upvotes || 0;
+    let newDownvotes = report.downvotes || 0;
+    
+    // Remove old vote effect
+    if (currentVote === 1) newUpvotes--;
+    if (currentVote === -1) newDownvotes--;
+    
+    // Add new vote effect
+    if (newVote === 1) newUpvotes++;
+    if (newVote === -1) newDownvotes++;
+    
+    const newNetVotes = newUpvotes - newDownvotes;
+    
+    // Update UI immediately
+    if (upvoteBtn) {
+      upvoteBtn.textContent = `👍 ${newUpvotes}`;
+      upvoteBtn.classList.toggle('active', newVote === 1);
+    }
+    if (downvoteBtn) {
+      downvoteBtn.textContent = `👎 ${newDownvotes}`;
+      downvoteBtn.classList.toggle('active', newVote === -1);
+    }
+    if (netVotesSpan) {
+      netVotesSpan.textContent = `(${newNetVotes >= 0 ? '+' : ''}${newNetVotes})`;
+    }
+    
+    // Update state optimistically
+    state.reports[reportIndex] = {
+      ...report,
+      upvotes: newUpvotes,
+      downvotes: newDownvotes,
+      netVotes: newNetVotes,
+      userVote: newVote
+    };
+    
     try {
       const response = await fetch(`/api/reports/${reportId}/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vote }) // 1 or -1
+        body: JSON.stringify({ vote: newVote })
       });
 
       if (!response.ok) {
         const err = await response.json();
-        alert(err.error || 'Failed to vote');
-        return;
+        throw new Error(err.error || 'Failed to vote');
       }
-
-      // Reload reports to show updated counts
-      await loadReports();
+      
+      // Update with server response (in case of any discrepancy)
+      const data = await response.json();
+      state.reports[reportIndex] = {
+        ...state.reports[reportIndex],
+        upvotes: data.upvotes,
+        downvotes: data.downvotes,
+        netVotes: data.netVotes,
+        userVote: data.userVote
+      };
+      
+      // Update UI with server values
+      if (upvoteBtn) upvoteBtn.textContent = `👍 ${data.upvotes}`;
+      if (downvoteBtn) downvoteBtn.textContent = `👎 ${data.downvotes}`;
+      if (netVotesSpan) netVotesSpan.textContent = `(${data.netVotes >= 0 ? '+' : ''}${data.netVotes})`;
 
     } catch (err) {
-      console.error('Vote error:', err);
-      alert('Failed to vote');
+      // Revert to original state on error
+      state.reports[reportIndex] = report;
+      
+      // Revert UI
+      if (upvoteBtn) {
+        upvoteBtn.textContent = `👍 ${report.upvotes || 0}`;
+        upvoteBtn.classList.toggle('active', currentVote === 1);
+      }
+      if (downvoteBtn) {
+        downvoteBtn.textContent = `👎 ${report.downvotes || 0}`;
+        downvoteBtn.classList.toggle('active', currentVote === -1);
+      }
+      if (netVotesSpan) {
+        const net = report.netVotes || 0;
+        netVotesSpan.textContent = `(${net >= 0 ? '+' : ''}${net})`;
+      }
+      
+      alert(err.message || 'Failed to vote');
     }
   }
 
@@ -712,8 +802,8 @@
     feed.addEventListener('click', (e) => {
       if (e.target.classList.contains('vote-btn')) {
         const reportId = e.target.dataset.reportId;
-        const vote = parseInt(e.target.dataset.vote);
-        handleVote(reportId, vote);
+        const clickedVote = parseInt(e.target.dataset.vote);
+        handleVote(reportId, clickedVote, e.target);
       }
     });
 

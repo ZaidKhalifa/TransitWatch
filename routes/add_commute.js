@@ -96,6 +96,44 @@ router.get('/new', async (req, res) => {
 });
 
 /* =========================
+   GET /commutes/:commuteId/details
+   Commute details page with live tracking + reports feed
+   ========================= */
+router.get('/:commuteId/details', async (req, res) => {
+  try {
+    const userId = req.session.user.userId;
+    const commute = await userCommutes.getCommuteById(userId, req.params.commuteId);
+    
+    if (!commute) {
+      return res.status(404).render('error', {
+        title: 'Not Found',
+        error: 'Commute not found'
+      });
+    }
+
+    // Get all stop IDs from this commute for reports filtering
+    const stopIds = [];
+    commute.legs.forEach(leg => {
+      if (leg.originStopId) stopIds.push(leg.originStopId);
+      if (leg.destinationStopId) stopIds.push(leg.destinationStopId);
+    });
+
+    res.render('commuteDetails', {
+      title: commute.name,
+      commuteId: req.params.commuteId,
+      commute: JSON.stringify(commute),
+      stopIds: JSON.stringify([...new Set(stopIds)]) // Unique stop IDs
+    });
+  } catch (err) {
+    console.error('Commute details error:', err);
+    res.status(500).render('error', {
+      title: 'Error',
+      error: 'Failed to load commute details'
+    });
+  }
+});
+
+/* =========================
    GET /commutes/edit/:commuteId
    ========================= */
 router.get('/edit/:commuteId', async (req, res) => {

@@ -1,0 +1,80 @@
+<div class="commute-details-page">
+  <!-- Left Panel: Live Commute Tracker -->
+  <div class="details-left-panel">
+    <div class="panel-header">
+      <h1 class="commute-title" id="commuteTitle">Loading...</h1>
+      <div class="commute-actions-header">
+        <a href="/commutes/edit/{{commuteId}}" class="btn btn-small btn-secondary">✏️ Edit</a>
+        <button class="btn btn-small btn-danger" id="deleteCommuteBtn">🗑️ Delete</button>
+      </div>
+    </div>
+    
+    <!-- Feasibility Score (placeholder) -->
+    <div class="feasibility-banner" id="feasibilityBanner">
+      <span class="feasibility-label">Feasibility:</span>
+      <span class="feasibility-score" id="feasibilityScore">--</span>
+      <span class="feasibility-message" id="feasibilityMessage"></span>
+    </div>
+
+    <!-- Journey Summary -->
+    <div class="journey-summary" id="journeySummary">
+      <div class="summary-times">
+        <span class="summary-depart">Depart: --:--</span>
+        <span class="summary-arrive">Arrive: --:--</span>
+        <span class="summary-duration">(-- min)</span>
+      </div>
+    </div>
+
+    <!-- Legs Container (vertical stack) -->
+    <div class="legs-vertical-container" id="legsContainer">
+      <!-- Legs will be rendered here by JS -->
+      <div class="loading-placeholder">
+        <div class="spinner"></div>
+        <p>Loading commute data...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Reports Feed -->
+  <div class="details-right-panel">
+    <div class="panel-header">
+      <h2>📋 Reports for This Route</h2>
+    </div>
+    
+    <div class="reports-feed" id="reportsFeed">
+      <div class="loading-placeholder">
+        <div class="spinner"></div>
+        <p>Loading reports...</p>
+      </div>
+    </div>
+
+    <div class="reports-footer">
+      <button class="btn btn-secondary btn-block" id="loadUnpopularBtn" style="display: none;">
+        View unpopular / resolved reports
+      </button>
+      <p class="no-reports-message" id="noReportsMessage" style="display: none;">
+        No reports for stops on this route.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal-overlay" id="deleteModal" style="display: none;">
+  <div class="modal-content">
+    <h3>Delete Commute?</h3>
+    <p>Are you sure you want to delete this commute? This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Pass data to JS
+  window.commuteId = "{{commuteId}}";
+  window.commuteData = {{{commute}}};
+  window.stopIds = {{{stopIds}}};
+</script>
+<script src="/js/commuteDetails.js"></script>
