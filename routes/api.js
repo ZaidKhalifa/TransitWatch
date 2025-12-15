@@ -44,7 +44,7 @@ function makeSubwayDisplayName(stop) {
   if (labels.length===0) return stop.stopName;
 
   // if there is any of them, append it
-  return `${stop.stopName} (${labels.joun(', ')})`;
+  return `${stop.stopName} (${labels.join(', ')})`;
 }
 router.get('/stops', async (req, res) => {
     try {

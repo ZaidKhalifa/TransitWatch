@@ -381,6 +381,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // ===========================================================================
   // DROPDOWN RENDERING
   // ===========================================================================
+function makeSubwayDisplayName(stop) {
+  if (!stop.routes || stop.routes.length === 0) return stop.stopName;
+
+  const labels = [];
+  for (const r of stop.routes) {
+    if (!r.routeId) continue;
+    if (r.directions?.length) {
+      for (const d of r.directions) labels.push(`${r.routeId} • ${d}`);
+    } else {
+      labels.push(r.routeId);
+    }
+  }
+  return labels.length ? `${stop.stopName} (${labels.join(', ')})` : stop.stopName;
+}
   function renderDropdown(container, items, onSelect) {
     container.innerHTML = '';
     if (!items?.length) {
@@ -396,8 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const div = document.createElement('div');
       div.className = 'dropdown-item';
-      const label = (item.transitSystem === 'MTA_SUBWAY' && item.displayName)
-        ? item.displayName
+      const label = (item.transitSystem === 'MTA_SUBWAY')
+        ? (item.displayName||makeSubwayDisplayName(item))
         : item.stopName
       // Show transit system badge if searching all stops
       if (item.transitSystem) {
