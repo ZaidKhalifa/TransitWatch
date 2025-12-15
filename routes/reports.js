@@ -16,9 +16,9 @@ const router = express.Router();
 const getStopsForForm = async () => {
     const stopsCol = await stopsCollection();
     const totalCount = await stopsCol.countDocuments({});
-    console.log('Total stops in DB: ',totalCount);
+    // console.log('Total stops in DB: ',totalCount);
     const hobokenDocs = await stopsCol.find({ stopName: { $regex: /hoboken/i } }).toArray();
-    console.log('Hoboken docs from DB: ', hobokenDocs);
+    // console.log('Hoboken docs from DB: ', hobokenDocs);
     const stops = await stopsCol.find({}).sort({ stopName: 1 }).toArray();
     const mapped = stops.map((s) => ({
         stopId: s.stopId,
@@ -26,8 +26,8 @@ const getStopsForForm = async () => {
         transitSystem: s.transitSystem
     }));
     const hobokenMatches = mapped.filter((s) => s.stopName.toLowerCase().includes('hoboken'));
-    console.log('Total stopsOptions: ', mapped.length);
-    console.log('Hoboken stopsOptions matches: ', hobokenMatches);
+    // console.log('Total stopsOptions: ', mapped.length);
+    // console.log('Hoboken stopsOptions matches: ', hobokenMatches);
     return mapped;
 };
 
