@@ -1,3 +1,5 @@
+import validator from 'validator';
+
 const VALID_ISSUES = ['elevator', 'escalator', 'bathroom', 'turnstile', 'other'];
 const VALID_STATUS = ['active', 'resolved'];
 export const parseAndValidateStops = (stopsRaw) => {
@@ -30,17 +32,16 @@ export const validateDescription = (description) => {
         throw new Error('Description is required');
     }
     const trimmed = description.trim();
-    if(trimmed.length < 5)
-        throw new Error('Description must be at least 5 characters');
-    if(trimmed.length > 1000)
-        throw new Error('Description is too long');
     if(!trimmed || typeof trimmed !== 'string' || trimmed.length === 0){
         throw new Error('Description is required');
     }
+    if(trimmed.length < 5)
+        throw new Error('Description must be at least 5 characters');
     if(trimmed.length > 255){
         throw new Error('Description must not exceed 255 characters');
     }
-    return trimmed;
+    const sanitized = validator.escape(trimmed);
+    return sanitized;
 };
 
 export const validateSeverity = (severityRaw) => {
