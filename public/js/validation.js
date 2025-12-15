@@ -334,6 +334,7 @@
             const stationName = reportForm.stationName.value.trim();
             const issueType = reportForm.issueType.value;
             const description = reportForm.description.value.trim();
+
             let valid = true;
             if(!stationId){
                 alert('Please enter a station ID.');
@@ -355,6 +356,11 @@
 
             if(!description || description.length < 5){
                 alert('Description must be at least 5 characters long.');
+                valid = false;
+            }
+
+            if(description.length > 255){
+                alert('Description is too long, cannot exceed more than 255 characters');
                 valid = false;
             }
 

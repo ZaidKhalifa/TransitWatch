@@ -34,6 +34,12 @@ export const validateDescription = (description) => {
         throw new Error('Description must be at least 5 characters');
     if(trimmed.length > 1000)
         throw new Error('Description is too long');
+    if(!trimmed || typeof trimmed !== 'string' || trimmed.length() === 0){
+        throw new Error('Description is required');
+    }
+    if(trimmed.length > 255){
+        throw new Error('Description must not exceed 255 characters');
+    }
     return trimmed;
 };
 

@@ -15,12 +15,20 @@ const router = express.Router();
 
 const getStopsForForm = async () => {
     const stopsCol = await stopsCollection();
-    const stops = await stopsCol.find({}).limit(300).toArray();
-    return stops.map((s) => ({
+    const totalCount = await stopsCol.countDocuments({});
+    console.log('Total stops in DB: ',totalCount);
+    const hobokenDocs = await stopsCol.find({ stopName: { $regex: /hoboken/i } }).toArray();
+    console.log('Hoboken docs from DB: ', hobokenDocs);
+    const stops = await stopsCol.find({}).sort({ stopName: 1 }).toArray();
+    const mapped = stops.map((s) => ({
         stopId: s.stopId,
         stopName: s.stopName,
         transitSystem: s.transitSystem
     }));
+    const hobokenMatches = mapped.filter((s) => s.stopName.toLowerCase().includes('hoboken'));
+    console.log('Total stopsOptions: ', mapped.length);
+    console.log('Hoboken stopsOptions matches: ', hobokenMatches);
+    return mapped;
 };
 
 const formatDateTime = (d) => {
@@ -60,19 +68,6 @@ router.get('/', isAuthenticated, async (req, res) => {
             });
     }
 });
-// router.get('/', isAuthenticated, async (req, res) => {
-//     try {
-//         const reports = await getReportsByUser(req.session.user.userId);
-//         res.render('reports', {
-//             title: 'Accessibility Reports',
-//             user: req.session.user,
-//             reports
-//         });
-//     }
-//     catch (e) {
-//         res.status(500).render('error', { error: e.toString(), user: req.session.user });
-//     }
-// });
 
 
 router.post('/new', isAuthenticated, async (req, res) => {
@@ -99,22 +94,6 @@ router.post('/new', isAuthenticated, async (req, res) => {
         });
     }
 });
-// router.post('/new', isAuthenticated, async (req, res) => {
-//     try {
-//         const { stationId, stationName, issueType, description } = req.body;
-//         await createReport(req.session.user.userId, stationId, stationName, issueType, description);
-//         res.redirect('/reports');
-//     }
-//     catch (e) {
-//         const reports = await getReportsByUser(req.session.user.userId);
-//         res.status(400).render('reports', { 
-//             title: 'Accessibility Reports',
-//             user: req.session.user,
-//             reports,
-//             error: e.toString()
-//         });
-//     }
-// });
 
 
 router.get('/:id/edit', isAuthenticated, async (req, res) => {
@@ -130,17 +109,6 @@ router.get('/:id/edit', isAuthenticated, async (req, res) => {
         res.status(404).render('error', { error: e.toString(), user: req.session.user });
     }
 });
-// router.get('/:id/edit', isAuthenticated, async (req, res) => {
-//     try {
-//         const report = await getReportById(req.params.id);
-//         if (!report)
-//             throw 'Report not found';
-//         res.render('editReport', { title: 'Edit Report', user: req.session.user, report });
-//     }
-//     catch (e) {
-//         res.status(404).render('error', { error: e.toString() });
-//     }
-// });
 
 
 router.post('/:id/edit', isAuthenticated, async (req, res) => {
@@ -167,20 +135,6 @@ router.post('/:id/edit', isAuthenticated, async (req, res) => {
             });
     }
 });
-// router.post('/:id/edit', isAuthenticated, async (req, res) => {
-//     try {
-//         const { stationName, issueType, description } = req.body;
-//         await updateReport(req.params.id, req.session.user.userId, { stationName, issueType, description });
-//         res.redirect('/reports');
-//     }
-//     catch (e) {
-//         res.status(400).render('editReport', { 
-//             title: 'Edit Report',
-//             user: req.session.user,
-//             error: e.toString()
-//         });
-//     }
-// });
 
 router.post('/:id/delete', isAuthenticated, async (req, res) => {
   try {

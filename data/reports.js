@@ -1,4 +1,4 @@
-import { reportsCollection, usersCollection } from '../config/mongoCollections.js';
+import { reportsCollection, usersCollection, stopsCollection } from '../config/mongoCollections.js';
 import { ObjectId } from 'mongodb';
 import { parseAndValidateStops, validateIssueType, validateDescription, validateSeverity, validateStatus } from '../helpers/reportHelpers.js';
 // username = req.session.user.userId (your login username)
@@ -46,6 +46,13 @@ export const createReport = async (
             { _id: user._id },
             { $push: { reports: reportId } }
         );
+        const stopsCol = await stopsCollection();
+        const stopIds = stops.map((s) => s.stopId);
+
+        await stopsCol.updateMany(
+            { stopId: { $in: stopIds } },
+            { $addToSet: { reports: reportId } }
+        );
         return await reportsCol.findOne({ _id: reportId });
     };
     
@@ -69,8 +76,10 @@ export const createReport = async (
         if(!existing)
             throw new Error('Report not found or unauthorized');
         const updateDoc = {};
+        let newStops = null;
         if(updatesRaw.stops){
-            updateDoc.stops = parseAndValidateStops(updatesRaw.stops);
+            newStops = parseAndValidateStops(updatesRaw.stops);
+            updateDoc.stops = newStops;
         }
         if(updatesRaw.issueType){
             updateDoc.issueType = validateIssueType(updatesRaw.issueType);
@@ -95,6 +104,27 @@ export const createReport = async (
         );
         if(!result.value)
             throw new Error('Report update failed');
+        if(newStops){
+            const stopsCol = await stopsCollection();
+            const oldStopIds = (existing.stops || []).map((s) => s.stopId);
+            const newStopIds = newStops.map((s) => s.stopId);
+            const removed = oldStopIds.filter((id) => !newStopIds.includes(id));
+            const added = newStopIds.filter((id) => !oldStopIds.includes(id));
+            const reportObjectId = new ObjectId(reportId);
+
+            if(removed.length){
+                await stopsCol.updateMany(
+                    { stopId: { $in: removed } },
+                    { $pull: { reports: reportObjectId } }
+                );
+            }
+            if(added.length){
+                await stopsCol.updateMany(
+                    { stopId: { $in: added } },
+                    { $addToSet: { reports: reportObjectId } }
+                );
+            }
+        }
         return result.value;
     };
     
@@ -114,6 +144,15 @@ export const createReport = async (
             { _id: report.userId },
             { $pull: { reports: reportObjectId } }
         );
+        
+        const stopsCol = await stopsCollection();
+        const stopIds = (report.stops || []).map((s) => s.stopId);
+        if(stopIds.length){
+            await stopsCol.updateMany(
+                { stopId: { $in: stopIds } },
+                { $pull: { reports: reportObjectId } }
+            );
+        }
     };
 
 // import { reportsCollection, usersCollection } from "../config/mongoCollections.js";
