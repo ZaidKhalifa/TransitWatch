@@ -396,12 +396,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const div = document.createElement('div');
       div.className = 'dropdown-item';
-      
+      const label = (item.transitSystem === 'MTA_SUBWAY' && item.displayName)
+        ? item.displayName
+        : item.stopName
       // Show transit system badge if searching all stops
       if (item.transitSystem) {
-        div.innerHTML = `<span class="stop-name">${item.stopName}</span><span class="stop-system">${item.transitSystem}</span>`;
+        // div.innerHTML = `<span class="stop-name">${item.stopName}</span><span class="stop-system">${item.transitSystem}</span>`;
+        div.innerHTML = `<span class="stop-name">${label}</span><span class="stop-system">${item.transitSystem}</span>`;
+
       } else {
-        div.textContent = item.stopName;
+        // div.textContent = item.stopName;
+        div.textContent = label;
+
       }
       
       div.onclick = (e) => {

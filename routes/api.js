@@ -19,14 +19,49 @@ const helpers = { "NJT_BUS": NJTBusHelpers, "NJT_RAIL": NJTRailHelpers, "MTA_SUB
  * GET /api/stops
  * Get all stops (for searching without transit system selected)
  */
+// Times Sq-42 St
+// → Times Sq-42 St (7 • Flushing-Main St, 7 • Times Sq, 
+//                   3 • Harlem-148 St, 3 • New Lots Ave)
+function makeSubwayDisplayName(stop) {
+  // if there are no routes, return the same name
+  if (!stop.routes || stop.routes.length === 0) return stop.stopName;
+  const labels = [];
+  for (const route of stop.routes) {
+    const routeId = route.routeId;
+    if (!routeId) continue;
+
+    // add all the directions available
+    if (route.directions && route.directions.length > 0) {
+      for (const dir of route.directions) {
+        labels.push(`${routeId} • ${dir}`);
+      }
+    } else {
+      labels.push(routeId);
+    }
+  }
+
+  // if both route and dir do not exist, return the same name
+  if (labels.length===0) return stop.stopName;
+
+  // if there is any of them, append it
+  return `${stop.stopName} (${labels.joun(', ')})`;
+}
 router.get('/stops', async (req, res) => {
     try {
         const stops = await stopsCollection();
         const allStops = await stops.find(
             {},
-            { projection: { stopId: 1, stopName: 1, transitSystem: 1, location: 1 } }
+            { projection: { stopId: 1, stopName: 1, transitSystem: 1, location: 1,
+                routes:1
+             } }
         ).sort({ stopName: 1 }).toArray();
-        res.json(allStops);
+        const shaped = allStops.map(s => ({
+            ...s,
+            displayName: s.transitSystem === 'MTA_SUBWAY' 
+            ? makeSubwayDisplayName(s) 
+            : s.stopName
+        }));
+        res.json(shaped);
     } catch (e) {
         console.error('Error fetching all stops:', e);
         res.status(500).json({ error: 'Failed to fetch stops' });
