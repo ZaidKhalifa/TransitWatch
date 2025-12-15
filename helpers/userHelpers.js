@@ -80,6 +80,12 @@ export const validatePassword = (pass) => {
         throw new StatusError('Password cannot contain spaces');
     if (pass.length < 8)
         throw new StatusError('Password must be at least 8 characters long');
+    if (!/[A-Z]/.test(pass))
+        throw new StatusError('Password must have an uppercase character');
+    if(!/[^A-Za-z0-9]/.test(pass))
+        throw new StatusError('Password must have a special character');
+    if(!/[0-9]/.test(pass))
+        throw new StatusError('Password must have a number');
     return pass;
 };
 

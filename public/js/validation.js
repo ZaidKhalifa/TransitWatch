@@ -47,19 +47,20 @@
     };
 
     const validatePassword = (pass, strName = 'Password') => {
-        if (pass === undefined || pass === null) {
-            throw `${strName} is required`;
-        }
-        if (typeof pass !== 'string') {
-            throw `${strName} must be a string`;
-        }
-        if (/\s/.test(pass)) {
-            throw `${strName} cannot contain spaces`;
-        }
-        if (pass.length < 8) {
-            throw `${strName} must be at least 8 characters long`;
-        }
-        return pass;
+        if(pass === undefined)
+            throw 'Password is missing'
+        if(typeof pass !== "string")
+            throw 'Password must be a string'
+        if (/\s/.test(pass))
+            throw 'Password cannot contain spaces'
+        if (pass.length < 8)
+            throw 'Password must be at least 8 characters long';
+        if (!/[A-Z]/.test(pass))
+            throw 'Password must have an uppercase character';
+        if(!/[^A-Za-z0-9]/.test(pass))
+            throw 'Password must have a special character';
+        if(!/[0-9]/.test(pass))
+            throw 'Password must have a number';
     };
 
     const validateDob = (dob) => {
