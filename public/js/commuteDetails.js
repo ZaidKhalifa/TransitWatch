@@ -105,6 +105,16 @@
     return date.toLocaleDateString();
   }
 
+  function escapeHtml(text) {
+    if (text == null) return '';
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   
   // INITIALIZATION
   
@@ -580,6 +590,11 @@
     card.dataset.reportId = report._id;
 
     const stopsText = report.stops.map(s => s.stopName).join(', ');
+
+    const safeDescription = escapeHtml(report.description);
+    const safeUsername = escapeHtml(report.username);
+    const safeIssueType = escapeHtml(report.issueType);
+
     const issueIcons = {
       'elevator': '🛗',
       'escalator': '📶',
@@ -595,7 +610,7 @@
     card.innerHTML = `
       <div class="report-header">
         <span class="report-icon">${icon}</span>
-        <span class="report-type">${report.issueType}</span>
+        <span class="report-type">${safeIssueType}</span>
         <span class="report-severity severity-${report.severity > 7 ? 'high' : report.severity > 4 ? 'medium' : 'low'}">
           Severity: ${report.severity}/10
         </span>
@@ -603,7 +618,7 @@
       <div class="report-stops">
         <small>📍 ${stopsText}</small>
       </div>
-      <p class="report-description">${report.description}</p>
+      <p class="report-description">${safeDescription}</p>
       <div class="report-footer">
         <div class="report-votes">
           <button class="vote-btn upvote ${userVote === 1 ? 'active' : ''}" data-report-id="${report._id}" data-vote="1">
@@ -615,7 +630,7 @@
           <span class="net-votes">(${report.netVotes >= 0 ? '+' : ''}${report.netVotes || 0})</span>
         </div>
         <div class="report-meta">
-          <span class="report-author">by ${report.username}</span>
+          <span class="report-author">by ${safeUsername}</span>
           <span class="report-time">${formatTimeAgo(report.createdAt)}</span>
         </div>
       </div>
